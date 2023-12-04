@@ -1,3 +1,3 @@
 ## Hi there 👋
 
-For info affecting the whole project visit https://github.com/FossifyX/General-Discussion or https://github.com/FossifyX/General-Discussion/discussions
+For info affecting the whole project visit https://github.com/FossifyX/General-Discussion/issues and https://github.com/FossifyX/General-Discussion/discussions
