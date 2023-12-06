@@ -6,6 +6,6 @@ For info affecting the whole project visit https://github.com/FossifyX/General-D
 
 ## Most Asked Questions
 
-### It's safe use Simple Mobile Tools apps from F-droid?
+### It's safe to use Simple Mobile Tools apps from F-droid?
 
 Yes, it's safe. They have disabled AUM (AutoUpdateMode - auto-generating new builds when new releases are available), so you don't get new versions with ads from ZipoApps. https://gitlab.com/fdroid/fdroiddata/-/merge_requests/14135
