@@ -13,6 +13,8 @@ For info affecting the whole project visit https://github.com/FossifyOrg/General
 
 **Liberapay:** https://liberapay.com/naveensingh
 
+### Crypto options:
+
 **BTC:** bc1q5flmuh5f3canqza07cfekjn64p2aqvd2w7pnn3
 
 **ETH:** 0x9354fC372BC3BdA58766a8a9Fabadf77A76CdE01
