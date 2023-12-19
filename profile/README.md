@@ -1,6 +1,6 @@
 ## Hi there 👋
 
-### Got a few seconds? We'd appreciate your help in deciding on our app names: https://github.com/orgs/FossifyOrg/discussions/54
+### Got a few seconds? We'd appreciate your help in deciding on our app names: https://github.com/orgs/FossifyOrg/discussions/54 (final round)
 
 For info affecting the whole project visit https://github.com/FossifyOrg/General-Discussion/issues and https://github.com/FossifyOrg/General-Discussion/discussions
 
