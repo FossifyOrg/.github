@@ -1,4 +1,4 @@
-## Welcome to Fossify! 👋
+# Welcome to Fossify! 👋
 
 Explore and contribute to the Fossify project right here. Get involved, share ideas, and make an impact:
 
@@ -15,7 +15,7 @@ The project's success depends on your support. Consider contributing through the
 - **PayPal:** [https://paypal.me/naveen3singh](https://paypal.me/naveen3singh)
 - **Liberapay:** [https://liberapay.com/naveensingh](https://liberapay.com/naveensingh)
 
-### Crypto Options
+### Crypto Options:
 
 Show your support through cryptocurrency donations:
 
