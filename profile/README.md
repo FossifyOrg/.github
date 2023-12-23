@@ -1,4 +1,4 @@
-# Welcome to Fossify! 👋
+## Welcome to Fossify! 👋
 
 Explore and contribute to the Fossify project right here. Get involved, share ideas, and make an impact:
 
