@@ -1,6 +1,6 @@
-# Welcome to Fossify! 👋
+# 👋 Hey there! Welcome to Fossify!
 
-Explore and contribute to the Fossify project right here. Get involved, share ideas, and make an impact:
+Fossify is all about community-backed, open-source, and ad-free mobile apps. A fork of the @SimpleMobileTools, which is no longer maintained, and we're here to continue the legacy, bringing simple and private tech to everyone.
 
 For general issues affecting the entire project, check out [general issues](https://github.com/FossifyOrg/General-Discussion/issues). Engage in discussions about various aspects of the project at [general discussions](https://github.com/FossifyOrg/General-Discussion/discussions).
 
@@ -10,10 +10,10 @@ Your contributions are crucial! To help with code or translations, visit [this l
 
 The project's success depends on your support. Consider contributing through these options:
 
-- **GitHub Sponsors:** [https://github.com/sponsors/naveensingh/](https://github.com/sponsors/naveensingh/)
-- **Patreon:** [https://www.patreon.com/naveen3singh](https://www.patreon.com/naveen3singh)
-- **PayPal:** [https://paypal.me/naveen3singh](https://paypal.me/naveen3singh)
-- **Liberapay:** [https://liberapay.com/naveensingh](https://liberapay.com/naveensingh)
+- **GitHub Sponsors:** https://github.com/sponsors/FossifyOrg
+- **Patreon:** https://www.patreon.com/naveen3singh
+- **PayPal:** https://paypal.me/naveen3singh
+- **Liberapay:** https://liberapay.com/naveensingh
 
 ### Crypto Options:
 
