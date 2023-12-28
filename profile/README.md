@@ -15,13 +15,18 @@ The project's success depends on your support. Consider contributing through the
 - **PayPal:** https://paypal.me/naveen3singh
 - **Liberapay:** https://liberapay.com/naveensingh
 
-### Crypto Options:
+<details>
+  
+  <summary><strong>Crypto Options:</strong></summary>
 
-Show your support through cryptocurrency donations:
+  
+  <p>Show your support through cryptocurrency donations:</p>
+  
+  - **BTC:** `bc1q5flmuh5f3canqza07cfekjn64p2aqvd2w7pnn3`
+  - **ETH:** `0x9354fC372BC3BdA58766a8a9Fabadf77A76CdE01`
+  - **XMR:** `48FkVUcJ7AGeBMR4SC4J7QU5nAt6YNwKZWz6sGDT1s5haEY7reZtJr5CniXLaQzTzGAuZNoc83BQAcETHw1d3Lkn8AAf1XF`
+  - **TRX:** `TGi4VpD1D9A9ZvyP9d3aVowwzMSvev2hub`
 
-- **BTC:** `bc1q5flmuh5f3canqza07cfekjn64p2aqvd2w7pnn3`
-- **ETH:** `0x9354fC372BC3BdA58766a8a9Fabadf77A76CdE01`
-- **XMR:** `48FkVUcJ7AGeBMR4SC4J7QU5nAt6YNwKZWz6sGDT1s5haEY7reZtJr5CniXLaQzTzGAuZNoc83BQAcETHw1d3Lkn8AAf1XF`
-- **TRX:** `TGi4VpD1D9A9ZvyP9d3aVowwzMSvev2hub`
+</details>
 
 If you have questions or want to learn more, feel free to [reach out](mailto:hello@fossify.org). We appreciate your contributions! 🌟
