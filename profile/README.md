@@ -29,4 +29,34 @@ The project's success depends on your support. Consider contributing through the
 
 </details>
 
+## Links
+
+Explore more Fossify apps: https://www.fossify.org
+
+Join the community on Reddit: https://www.reddit.com/r/Fossify
+
+Connect on Telegram: https://t.me/Fossify
+ 
+## Most Asked Questions
+  
+### It's safe to use Simple Mobile Tools apps from F-droid?
+
+<details>
+
+<summary><strong>Yes, it's safe.</strong></summary>
+
+F-droid team has disabled AUM (AutoUpdateMode - auto-generating new builds when new releases are available), so you don't get new versions with ads from ZipoApps. https://gitlab.com/fdroid/fdroiddata/-/merge_requests/14135
+
+</details>
+
+### May you add new app to the suite?
+
+<details>
+
+<summary><strong>No, sorry.</strong></summary>
+
+This project doesnt have enough resources even for the apps, that are in the suite right now. Maybe in the future.
+
+</details>
+
 If you have questions or want to learn more, feel free to [reach out](mailto:hello@fossify.org). We appreciate your contributions! 🌟
