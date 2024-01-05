@@ -29,4 +29,4 @@ The project's success depends on your support. Consider contributing through the
 
 </details>
 
-If you have questions or want to learn more, feel free to [create discussion](https://github.com/orgs/FossifyOrg/discussions) or if you want to ask privately, feel free to send [email](mailto:hello@fossify.org). We appreciate your contributions! 🌟
+If you have questions or want to learn more, feel free to [create discussion](https://github.com/orgs/FossifyOrg/discussions) or if you want to ask privately, feel free to [send email](mailto:hello@fossify.org). We appreciate your contributions! 🌟
