@@ -1,0 +1,5 @@
+{
+	"name": "Pull request workflow",
+	"description": "Pull request workflow for linters and tests.",
+	"iconName": "octicon git-pull-request"
+}

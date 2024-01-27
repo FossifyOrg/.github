@@ -1,0 +1,5 @@
+{
+	"name": "Testing build workflow",
+	"description": "Workflow for creating testing builds for labeled PRs",
+	"iconName": "octicon beaker"
+}
