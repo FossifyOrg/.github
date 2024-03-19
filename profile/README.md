@@ -2,6 +2,8 @@
 
 Fossify is all about community-backed, open-source, and ad-free mobile apps. A fork of the @SimpleMobileTools, which is [no longer maintained](https://github.com/SimpleMobileTools/General-Discussion/issues/241), and we're here to continue the legacy, bringing simple and private tech to everyone.
 
+<a href='https://play.google.com/store/apps/dev?id=7297838378654322558'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' height=80/></a>
+
 For general issues affecting the entire project, check out [general issues](https://github.com/FossifyOrg/General-Discussion/issues). Engage in discussions about various aspects of the project at [general discussions](https://github.com/FossifyOrg/General-Discussion/discussions).
 
 Your contributions are crucial! To help with code or translations, visit [this link](https://github.com/FossifyOrg/General-Discussion?tab=readme-ov-file#faq).
