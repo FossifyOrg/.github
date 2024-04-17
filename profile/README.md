@@ -14,6 +14,7 @@ The project's success depends on your support. Consider contributing through the
 - **Patreon:** https://www.patreon.com/naveen3singh
 - **PayPal:** https://paypal.me/naveen3singh
 - **Liberapay:** https://liberapay.com/naveensingh
+- **OpenCollective:** https://opencollective.com/fossify
 
 <details>
   
