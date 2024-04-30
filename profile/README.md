@@ -1,6 +1,6 @@
 # 👋 Hey there! Welcome to Fossify!
 
-Fossify is all about community-backed, open-source, and ad-free mobile apps. A fork of the SimpleMobileTools, which is [no longer maintained](https://github.com/SimpleMobileTools/General-Discussion/issues/241), and we're here to continue the legacy, bringing simple and private tech to everyone.
+Fossify is all about community-backed, open-source, and ad-free mobile apps. A fork of SimpleMobileTools, which is [no longer maintained](https://github.com/SimpleMobileTools/General-Discussion/issues/241), and we're here to continue the legacy, bringing simple and private tech to everyone.
 
 For general issues affecting the entire project, check out [general issues](https://github.com/FossifyOrg/General-Discussion/issues). Engage in discussions about various aspects of the project at [general discussions](https://github.com/FossifyOrg/General-Discussion/discussions).
 
