@@ -1,0 +1,15 @@
+name: PR
+
+on:
+    pull_request:
+        branches: [ $default-branch ]
+
+jobs:
+    call-pr-workflow:
+        uses: FossifyOrg/.github/.github/workflows/pr.yml@main
+        # The following keys can be used to change defaults
+        # with:
+        #     run_lint: true
+        #     run_detekt: true
+        #     run_tests: true
+        #     test_task: ":app:testCoreDebugUnitTest"
