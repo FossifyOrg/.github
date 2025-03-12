@@ -3,6 +3,11 @@ name: PR
 on:
     workflow_call:
         inputs:
+            run_wrapper_validation:
+                description: 'Whether to run Gradle Wrapper Validation as a part of this workflow. True by default.'
+                type: boolean
+                default: true
+                required: false
             run_lint:
                 description: 'Whether to run Android lint as a part of this workflow. True by default.'
                 type: boolean
@@ -25,6 +30,14 @@ on:
                 required: false
 
 jobs:
+    wrapper-validation:
+        name: "Validate Gradle Wrapper"
+        runs-on: ubuntu-latest
+        if: ${{ inputs.run_wrapper_validation }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: gradle/actions/wrapper-validation@v4
+
     android-lint:
         runs-on: ubuntu-latest
         if: ${{ inputs.run_lint }}
