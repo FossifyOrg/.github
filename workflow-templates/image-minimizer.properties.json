@@ -1,0 +1,5 @@
+{
+  "name": "Fossify Image Minimizer Workflow",
+  "description": "Automatically resizes large images in issues and pull requests to improve readability.",
+  "iconName": "octicon image"
+}

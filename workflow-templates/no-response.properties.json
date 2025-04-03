@@ -1,0 +1,5 @@
+{
+  "name": "Fossify No-Response Workflow",
+  "description": "Automatically closes issues and PRs that have been marked as awaiting author response and have not received a response within the specified time period.",
+  "iconName": "octicon clock"
+}

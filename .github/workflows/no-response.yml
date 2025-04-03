@@ -1,0 +1,35 @@
+name: no-response
+
+on:
+  workflow_call:
+    inputs:
+      days_before_close:
+        description: 'Number of days of inactivity before an issue is closed for lack of response'
+        type: number
+        default: 14
+        required: false
+      stale_label:
+        description: 'Label to use for marking issues that are waiting for a response'
+        type: string
+        default: 'waiting for author'
+        required: false
+    secrets:
+      FOSSIFYBOT_TOKEN:
+        required: true
+
+jobs:
+  noResponse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: naveensingh/stale@v9.1.1
+        with:
+          repo-token: ${{ secrets.FOSSIFYBOT_TOKEN }}
+          days-before-stale: -1
+          days-before-close: ${{ inputs.days_before_close }}
+          only-labels: ${{ inputs.stale_label }}
+          stale-issue-label: ${{ inputs.stale_label }}
+          stale-pr-label: ${{ inputs.stale_label }}
+          remove-stale-when-updated: false
+          ignore-updates: true
+          close-issue-message: This issue was automatically closed due to inactivity and/or lack of response from the author. If additional information becomes available, please leave a comment to reopen the issue.
+          close-pr-message: This pull request was automatically closed due to inactivity and/or lack of response from the author. If you have further updates or additional information, please comment or reopen the PR to continue.
