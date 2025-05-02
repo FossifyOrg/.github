@@ -1,0 +1,31 @@
+name: "Cleanup decoded secrets"
+description: "Cleans up decoded secrets from the filesystem."
+
+inputs:
+  keystore_path:
+    description: "Path to the decoded keystore file."
+    required: false
+    default: "app/release.jks"
+  service_key_path:
+    description: "Path to the decoded Play Store key file."
+    required: false
+    default: "fastlane/service-account.json"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clean up Keystore
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.keystore_path }}" ]; then
+          shred -u "${{ inputs.keystore_path }}" || rm -f "${{ inputs.keystore_path }}"
+        fi
+      continue-on-error: true
+
+    - name: Clean up service account key
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.service_key_path }}" ]; then
+          shred -u "${{ inputs.service_key_path }}" || rm -f "${{ inputs.service_key_path }}"
+        fi
+      continue-on-error: true
