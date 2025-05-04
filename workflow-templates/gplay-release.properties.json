@@ -1,0 +1,5 @@
+{
+    "name": "Fossify Google Play Release",
+    "description": "This workflow deploys a release to Google Play",
+    "iconName": "octicon tag"
+}

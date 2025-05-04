@@ -1,0 +1,225 @@
+# Reusable workflow for Fossify releases.
+name: Android Release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The git tag being released"
+        required: false
+        type: string
+        default: ""
+      flavor:
+        description: "Flavor to release (foss, gplay)"
+        required: false
+        type: string
+        default: "foss"
+      package_name:
+        description: "Application package (e.g. org.fossify.app)"
+        required: true
+        type: string
+      track:
+        description: "Play Store track (e.g. beta, production)"
+        required: false
+        type: string
+        default: "beta"
+      rollout:
+        description: "Rollout fraction (0.0-1.0)"
+        required: false
+        type: string
+        default: "0.05"
+      validate_only:
+        description: "Fastlane dry-run?"
+        required: false
+        type: boolean
+        default: false
+      maintainer:
+        description: "Maintainer username"
+        required: false
+        type: string
+        default: "naveensingh"
+
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: true
+      SIGNING_KEY_ALIAS:
+        required: true
+      SIGNING_KEY_PASSWORD:
+        required: true
+      SIGNING_STORE_PASSWORD:
+        required: true
+      SERVICE_ACCOUNT_JSON_KEY_BASE64:
+        required: true
+      FOSSIFYBOT_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  release_foss:
+    if: inputs.flavor == 'foss' && inputs.tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+      - uses: FossifyOrg/.github/.github/actions/decode-secrets@main
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build Release APK
+        run: ./gradlew assembleFossRelease
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+      - name: Install keep-a-changelog parser
+        run: npm install keep-a-changelog
+
+      - name: Extract Changelog Notes
+        id: extract_changelog
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { parser } = require('keep-a-changelog');
+
+            const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
+            if (!fs.existsSync(changelogPath)) {
+              core.setFailed(`Changelog file not found at ${changelogPath}`);
+              return;
+            }
+
+            console.log(`Reading changelog from: ${changelogPath}`);
+            const changelogContent = fs.readFileSync(changelogPath, 'utf8');
+            let parsed;
+            try {
+              parsed = parser(changelogContent);
+              console.log(`Parsed ${parsed.releases.length} releases from changelog.`);
+            } catch (error) {
+              core.setFailed(`Failed to parse CHANGELOG.md: ${error.message}`);
+              return;
+            }
+
+            const tagVersion = "${{ inputs.tag }}";
+            if (!tagVersion) {
+              core.setFailed('Input tag is required and was not provided.');
+              return;
+            }
+
+            console.log(`Extracting changelog for version: ${tagVersion}`);
+            const release = parsed.findRelease(tagVersion);
+
+            if (!release) {
+              core.setFailed(`No changelog entry found for version ${tagVersion} in ${changelogPath}. Please update the changelog before creating the release.`);
+              return;
+            }
+
+            console.log(`Found changelog for version ${tagVersion}.`);
+
+            let notes = '';
+            if (release.changes && release.changes.size > 0) {
+              for (const [sectionTitle, changes] of release.changes) {
+                if (changes && changes.length > 0) {
+                  const capitalizedTitle = sectionTitle.charAt(0).toUpperCase() + sectionTitle.slice(1);
+                  notes += `### ${capitalizedTitle}\n`;
+                  notes += changes.map(item => `${item}`).join('\n') + '\n\n';
+                }
+              }
+            } else {
+              console.log(`Version ${tagVersion} found, but no changes listed.`);
+              notes = '*No specific changes listed for this version.*\n\n';
+            }
+
+            const releaseIndex = parsed.releases.findIndex(r => r.version === tagVersion);
+            const prevRelease = (releaseIndex >= 0 && releaseIndex + 1 < parsed.releases.length) ? parsed.releases[releaseIndex + 1] : null;
+            let compareUrl = '';
+
+            if (prevRelease && prevRelease.version) {
+              console.log(`Found previous release version: ${prevRelease.version}`);
+              compareUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/compare/${prevRelease.version}...${tagVersion}`;
+            } else {
+              console.log(`No previous release found or this is the first release.`);
+              compareUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/tag/${tagVersion}`;
+            }
+            console.log(`Generated compare URL: ${compareUrl}`);
+
+            notes += `**Full Changelog:** ${compareUrl}`;
+            notes += `\n\n<sub>_This is an automated release; ping [@${{ inputs.maintainer }}](https://github.com/${{ inputs.maintainer }}) for urgent issues._</sub>`;
+            console.log("Final generated notes:\n", notes);
+            core.setOutput('changelog', notes);
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
+          body: ${{ steps.extract_changelog.outputs.changelog }}
+          draft: false
+          files: app/build/outputs/apk/foss/release/*release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.FOSSIFYBOT_TOKEN }}
+
+      - name: Clean up secrets
+        if: always()
+        uses: FossifyOrg/.github/.github/actions/cleanup-secrets@main
+
+  release_gplay:
+    if: inputs.flavor == 'gplay'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+      - uses: FossifyOrg/.github/.github/actions/decode-secrets@main
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+
+      - name: Set up Ruby & Bundler
+        uses: ruby/setup-ruby@eaecf785f6a34567a6d97f686bbb7bccc1ac1e5c
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Set up JDK
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install Fastlane
+        run: bundle install
+
+      - name: Decode Play Store JSON key
+        run: |
+          echo "$SERVICE_ACCOUNT_JSON_KEY_BASE64" | base64 --decode > fastlane/service-account.json
+        env:
+          SERVICE_ACCOUNT_JSON_KEY_BASE64: ${{ secrets.SERVICE_ACCOUNT_JSON_KEY_BASE64 }}
+
+      - name: Build AAB and upload to Play Store
+        run: |
+          bundle exec fastlane android deploy
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
+          JSON_KEY: fastlane/service-account.json
+          TRACK: ${{ inputs.track }}
+          ROLLOUT: ${{ inputs.rollout }}
+          VALIDATE_ONLY: ${{ inputs.validate_only }}
+
+      - name: Clean up secrets
+        if: always()
+        uses: FossifyOrg/.github/.github/actions/cleanup-secrets@main

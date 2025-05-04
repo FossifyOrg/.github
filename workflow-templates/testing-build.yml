@@ -10,5 +10,5 @@ jobs:
         uses: FossifyOrg/.github/.github/workflows/testing-build.yml@main
         # The following keys can be used to change defaults
         # with:
-        #     build_task: 'aseemblePrepaidDebug'
+        #     build_task: 'aseembleFossDebug'
         #     expected_label: 'testers needed'

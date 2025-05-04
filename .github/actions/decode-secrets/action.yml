@@ -1,0 +1,14 @@
+name: "Decode secrets"
+description: "Decode secrets for Android release"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Decode signing keystore
+      shell: bash
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 --decode > app/release.jks
+        echo "SIGNING_STORE_FILE=release.jks" >> $GITHUB_ENV
+        echo "SIGNING_KEY_ALIAS=$KEY_ALIAS"   >> $GITHUB_ENV
+        echo "SIGNING_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+        echo "SIGNING_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV

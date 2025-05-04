@@ -4,9 +4,9 @@ on:
     workflow_call:
         inputs:
             build_task:
-                description: 'Gradle task to run to build APK. "assemblePrepaidDebug" by default'
+                description: 'Gradle task to run to build APK. "assembleFossDebug" by default'
                 type: string
-                default: 'assemblePrepaidDebug'
+                default: 'assembleFossDebug'
                 required: false
             expected_label:
                 description: 'Label to look for to run the build. "testers needed" by default'
