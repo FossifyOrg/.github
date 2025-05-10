@@ -132,7 +132,7 @@ def main():
 
     if not METADATA_DIR.is_dir():
         print(
-            f"::error::Metadata directory {METADATA_DIR} not found. How could you let that happen?"
+            f"::error::Metadata directory {METADATA_DIR} not found. Cannot proceed."
         )
         exit(1)
 
