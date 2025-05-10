@@ -6,23 +6,23 @@ on:
       FOSSIFYBOT_TOKEN:
         required: true
 
+permissions:
+  contents: read
+  # write permission is not required as FOSSIFYBOT_TOKEN is used
+
 jobs:
   try-minimize:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.FOSSIFYBOT_TOKEN }}
-      
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Checkout .github repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: FossifyOrg/.github
           path: .github-repo
-          token: ${{ secrets.FOSSIFYBOT_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 16
 
@@ -30,10 +30,10 @@ jobs:
         run: npm i probe-image-size@7.2.3 --ignore-scripts
 
       - name: Minimize simple images
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         timeout-minutes: 3
         with:
           github-token: ${{ secrets.FOSSIFYBOT_TOKEN }}
           script: |
-            const script = require('./.github-repo/.github/workflows/image-minimizer.js');
+            const script = require('./.github-repo/scripts/image-minimizer.js');
             await script({github, context});
