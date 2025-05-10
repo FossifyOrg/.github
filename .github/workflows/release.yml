@@ -98,7 +98,7 @@ jobs:
         with:
           script: |
             const path = require('path');
-            const { formatForGitHub } = require('./.github-repo/.github/workflows/changelog-parser.js');
+            const { formatForGitHub } = require('./.github-repo/scripts/changelog-parser.js');
 
             const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
             const tagVersion = "${{ inputs.tag }}";
@@ -131,6 +131,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout .github repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: FossifyOrg/.github
+          path: .github-repo
+
       - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
       - uses: FossifyOrg/.github/.github/actions/decode-secrets@main
         env:
@@ -150,6 +156,14 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.x"
+
+      - name: Prepare Play Store metadata
+        run: python ./.github-repo/scripts/prepare_metadata.py
 
       - name: Install Fastlane
         run: bundle install
