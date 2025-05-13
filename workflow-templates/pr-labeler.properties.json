@@ -1,0 +1,5 @@
+{
+    "name": "PR Labeler",
+    "description": "Basic workflow for labeling PRs",
+    "iconName": "octicon git-pull-request"
+}

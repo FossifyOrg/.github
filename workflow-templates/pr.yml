@@ -10,10 +10,7 @@ jobs:
         # The following keys can be used to change defaults
         # with:
         #     run_wrapper_validation: true
-        #     run_label: true
         #     run_lint: true
         #     run_detekt: true
         #     run_tests: true
         #     test_task: ":app:testCoreDebugUnitTest"
-        secrets:
-            FOSSIFYBOT_TOKEN: ${{ secrets.FOSSIFYBOT_TOKEN }}

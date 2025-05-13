@@ -1,0 +1,25 @@
+name: Release Commenter
+
+on:
+  workflow_call:
+    secrets:
+      FOSSIFYBOT_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  # write permission is not required as FOSSIFYBOT_TOKEN is used
+
+jobs:
+  releaseCommenter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: apexskier/github-release-commenter@3bd413ad5e1d603bfe2282f9f06f2bdcec079327
+        with:
+          GITHUB_TOKEN: ${{ secrets.FOSSIFYBOT_TOKEN }}
+          label-template: "released"
+          skip-label: "dependencies,l10n,i18n"
+          comment-template: |
+            FYI: This is available in {release_link}. FossifyBot out.
