@@ -1,0 +1,5 @@
+{
+    "name": "Release Commenter",
+    "description": "Workflow for adding comments to issues and PRs when a release is created",
+    "iconName": "octicon tag"
+}
