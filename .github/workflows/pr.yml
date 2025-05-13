@@ -52,14 +52,14 @@ jobs:
         if: ${{ inputs.run_label }}
         steps:
             - name: Label l10n PRs
-              if: contains(toLower(github.event.pull_request.title), 'l10n')
+              if: contains(github.event.pull_request.title, 'l10n')
               uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
               with:
                   github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
                   labels: l10n
 
             - name: Label i18n PRs
-              if: contains(toLower(github.event.pull_request.title), 'i18n')
+              if: contains(github.event.pull_request.title, 'i18n')
               uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
               with:
                   github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
