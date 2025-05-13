@@ -4,30 +4,38 @@ on:
     workflow_call:
         inputs:
             run_wrapper_validation:
-                description: 'Whether to run Gradle Wrapper Validation as a part of this workflow. True by default.'
+                description: "Whether to run Gradle Wrapper Validation as a part of this workflow. True by default."
+                type: boolean
+                default: true
+                required: false
+            run_label:
+                description: "Whether to run label action as a part of this workflow. True by default."
                 type: boolean
                 default: true
                 required: false
             run_lint:
-                description: 'Whether to run Android lint as a part of this workflow. True by default.'
+                description: "Whether to run Android lint as a part of this workflow. True by default."
                 type: boolean
                 default: true
                 required: false
             run_detekt:
-                description: 'Whether to run detekt lint as a part of this workflow. True by default.'
+                description: "Whether to run detekt lint as a part of this workflow. True by default."
                 type: boolean
                 default: true
                 required: false
             run_tests:
-                description: 'Whether to run tests as a part of this workflow. True by default.'
+                description: "Whether to run tests as a part of this workflow. True by default."
                 type: boolean
                 default: true
                 required: false
             test_task:
                 description: 'Tests gradle task to run. ":app:testCoreDebugUnitTest" by default'
                 type: string
-                default: ':app:testCoreDebugUnitTest'
+                default: ":app:testCoreDebugUnitTest"
                 required: false
+        secrets:
+            FOSSIFYBOT_TOKEN:
+                required: true
 
 jobs:
     wrapper-validation:
@@ -38,6 +46,25 @@ jobs:
             - uses: actions/checkout@v4
             - uses: gradle/actions/wrapper-validation@v4
 
+    label:
+        name: "Label PRs"
+        runs-on: ubuntu-latest
+        if: ${{ inputs.run_label }}
+        steps:
+            - name: Label l10n PRs
+              if: contains(toLower(github.event.pull_request.title), 'l10n')
+              uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
+              with:
+                  github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
+                  labels: l10n
+
+            - name: Label i18n PRs
+              if: contains(toLower(github.event.pull_request.title), 'i18n')
+              uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
+              with:
+                  github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
+                  labels: i18n
+
     android-lint:
         runs-on: ubuntu-latest
         if: ${{ inputs.run_lint }}
@@ -46,7 +73,7 @@ jobs:
             - uses: actions/setup-java@v4
               with:
                   java-version: 17
-                  distribution: 'temurin'
+                  distribution: "temurin"
             - name: Run Android lint
               id: lint
               run: ./gradlew lint
@@ -57,15 +84,14 @@ jobs:
               uses: actions/upload-artifact@v4
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               with:
-                  name: 'new-lint-baseline'
-                  path: 'app/lint-baseline.xml'
+                  name: "new-lint-baseline"
+                  path: "app/lint-baseline.xml"
             - name: Upload results
               uses: actions/upload-artifact@v4
               if: ${{ !cancelled() }}
               with:
-                  name: 'lint-results'
-                  path: 'app/build/intermediates/lint_intermediate_text_report/coreDebug/lint-results-coreDebug.txt'
-
+                  name: "lint-results"
+                  path: "app/build/intermediates/lint_intermediate_text_report/coreDebug/lint-results-coreDebug.txt"
 
     detekt:
         runs-on: ubuntu-latest
@@ -75,7 +101,7 @@ jobs:
             - uses: actions/setup-java@v4
               with:
                   java-version: 17
-                  distribution: 'temurin'
+                  distribution: "temurin"
             - name: Run detekt checks
               run: ./gradlew detekt
 
@@ -87,6 +113,6 @@ jobs:
             - uses: actions/setup-java@v4
               with:
                   java-version: 17
-                  distribution: 'temurin'
+                  distribution: "temurin"
             - name: Run tests
               run: ./gradlew ${{ inputs.test_task }}
