@@ -16,7 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Label l10n PRs
-        if: contains(github.event.pull_request.title, 'l10n')
+        if: |
+          contains(github.event.pull_request.title, 'l10n') ||
+          contains(github.event.pull_request.user.login, 'weblate')
         uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
         with:
           github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
@@ -30,14 +32,18 @@ jobs:
           labels: i18n
 
       - name: Label CI PRs
-        if: contains(github.event.pull_request.title, 'ci')
+        if: |
+          contains(github.event.pull_request.title, 'ci:') ||
+          contains(github.event.pull_request.title, 'ci(')
         uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
         with:
           github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
           labels: ci
 
       - name: Label Documentation PRs
-        if: contains(github.event.pull_request.title, 'docs')
+        if: |
+          contains(github.event.pull_request.title, 'docs:') ||
+          contains(github.event.pull_request.title, 'docs(')
         uses: actions-ecosystem/action-add-labels@bd52874380e3909a1ac983768df6976535ece7f8
         with:
           github_token: ${{ secrets.FOSSIFYBOT_TOKEN }}
