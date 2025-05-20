@@ -21,5 +21,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.FOSSIFYBOT_TOKEN }}
           label-template: "released"
           skip-label: "ci,dependencies,documentation,l10n,i18n,released"
-          comment-template: |
-            FYI: This is available in {release_link}. FossifyBot out.
+          comment-template: ""
