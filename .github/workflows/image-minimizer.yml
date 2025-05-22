@@ -2,9 +2,6 @@ name: Image Minimizer
 
 on:
   workflow_call:
-    secrets:
-      FOSSIFYBOT_TOKEN:
-        required: true
 
 jobs:
   try-minimize:
