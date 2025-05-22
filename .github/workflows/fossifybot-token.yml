@@ -1,0 +1,19 @@
+name: Generate FossifyBot Token
+on:
+  workflow_call:
+    outputs:
+      token:
+        description: "Generates token for FossifyBot"
+        value: ${{ jobs.generate.outputs.token }}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      token: ${{ steps.gen.outputs.token }}
+    steps:
+      - id: gen
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
