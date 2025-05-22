@@ -6,10 +6,6 @@ on:
       FOSSIFYBOT_TOKEN:
         required: true
 
-permissions:
-  contents: read
-  # write permission is not required as FOSSIFYBOT_TOKEN is used
-
 jobs:
   try-minimize:
     runs-on: ubuntu-latest
@@ -29,11 +25,17 @@ jobs:
       - name: Install probe-image-size
         run: npm i probe-image-size@7.2.3 --ignore-scripts
 
+      - id: app-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Minimize simple images
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         timeout-minutes: 3
         with:
-          github-token: ${{ secrets.FOSSIFYBOT_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const script = require('./.github-repo/scripts/image-minimizer.js');
             await script({github, context});
