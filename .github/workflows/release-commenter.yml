@@ -2,23 +2,20 @@ name: Release Commenter
 
 on:
   workflow_call:
-    secrets:
-      FOSSIFYBOT_TOKEN:
-        required: true
-
-permissions:
-  contents: read
-  issues: read
-  pull-requests: read
-  # write permission is not required as FOSSIFYBOT_TOKEN is used
 
 jobs:
   releaseCommenter:
     runs-on: ubuntu-latest
     steps:
+      - id: app-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: apexskier/github-release-commenter@3bd413ad5e1d603bfe2282f9f06f2bdcec079327
         with:
-          GITHUB_TOKEN: ${{ secrets.FOSSIFYBOT_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           label-template: "released"
           skip-label: "ci,dependencies,documentation,l10n,i18n,released"
           comment-template: ""

@@ -4,26 +4,29 @@ on:
   workflow_call:
     inputs:
       days_before_close:
-        description: 'Number of days of inactivity before an issue is closed for lack of response'
+        description: "Number of days of inactivity before an issue is closed for lack of response"
         type: number
         default: 14
         required: false
       stale_label:
-        description: 'Label to use for marking issues that are waiting for a response'
+        description: "Label to use for marking issues that are waiting for a response"
         type: string
-        default: 'waiting for author'
+        default: "waiting for author"
         required: false
-    secrets:
-      FOSSIFYBOT_TOKEN:
-        required: true
 
 jobs:
   noResponse:
     runs-on: ubuntu-latest
     steps:
+      - id: app-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: naveensingh/stale@v9.1.1
         with:
-          repo-token: ${{ secrets.FOSSIFYBOT_TOKEN }}
+          repo-token: ${{ steps.app-token.outputs.token }}
           days-before-stale: -1
           days-before-close: ${{ inputs.days_before_close }}
           only-labels: ${{ inputs.stale_label }}
