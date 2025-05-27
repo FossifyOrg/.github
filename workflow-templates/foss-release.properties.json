@@ -1,5 +1,0 @@
-{
-    "name": "Fossify Github Release",
-    "description": "Automatically creates a Github release when a new tag is pushed to the repository.",
-    "iconName": "octicon tag"
-}

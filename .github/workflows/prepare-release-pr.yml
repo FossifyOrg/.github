@@ -1,0 +1,121 @@
+name: Prepare Release PR
+
+on:
+  workflow_call:
+    inputs:
+      maintainer:
+        description: "Maintainer username"
+        required: false
+        type: string
+        default: "naveensingh"
+
+concurrency:
+  group: release-pr-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout .github repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: FossifyOrg/.github
+          path: .github-repo
+
+      - name: Get next version code
+        id: version-code
+        run: |
+          currentVersionCode=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
+          nextVersionCode=$((currentVersionCode+1))
+          echo "nextVersionCode=$nextVersionCode" >> $GITHUB_OUTPUT
+
+      - name: Get next version name
+        id: version-name
+        uses: ietf-tools/semver-action@778d1d5b7af80aa43f50104116b8363e7fc0d1ef
+        with:
+          token: ${{ github.token }}
+          branch: ${{ github.event.repository.default_branch }}
+
+      - name: Update files and check changelog
+        if: ${{ steps.version-name.outputs.nextStrict }}
+        id: update-version
+        run: |
+          chmod +x .github-repo/scripts/update-version.sh
+          if ! .github-repo/scripts/update-version.sh \
+            "${{ steps.version-name.outputs.nextStrict }}" \
+            "${{ steps.version-code.outputs.nextVersionCode }}" \
+            "${{ github.repository }}"; then
+            echo "::error::Release aborted - No changes found in CHANGELOG.md [Unreleased] section"
+            echo "::error::Please add your changes to the [Unreleased] section before creating a release"
+            exit 1
+          fi
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+      - name: Install keep-a-changelog parser
+        run: npm install keep-a-changelog@2.6.2
+
+      - name: Extract changelog notes
+        if: ${{ steps.update-version.outcome == 'success' }}
+        id: extract_changelog
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const path = require('path');
+            const fs = require('fs');
+            const { formatForGitHub, formatForFastlane } = require('./.github-repo/scripts/changelog-parser.js');
+
+            const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
+            const tagVersion = "${{ steps.version-name.outputs.nextStrict }}";
+            if (!tagVersion) {
+              throw new Error('VERSION_NAME environment variable is not set.');
+            }
+
+            try {
+              const fastlaneNotes = formatForFastlane(changelogPath, tagVersion);
+              const versionCode = "${{ steps.version-code.outputs.nextVersionCode }}";
+              const metadataPath = path.join(process.env.GITHUB_WORKSPACE, 'fastlane', 'metadata', 'android', 'en-US', 'changelogs');
+              if (!fs.existsSync(metadataPath)) {
+                fs.mkdirSync(metadataPath, { recursive: true });
+              }
+              fs.writeFileSync(path.join(metadataPath, `${versionCode}.txt`), fastlaneNotes);
+
+              // Use GitHub format for the PR body
+              const notes = formatForGitHub(changelogPath, tagVersion, "${{ inputs.maintainer }}", process.env.GITHUB_REPOSITORY);
+              core.setOutput('changelog', notes);
+            } catch (error) {
+              core.setFailed(error.message);
+              return;
+            }
+
+      - id: app-token
+        if: ${{ steps.update-version.outcome == 'success' }}
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Create or update PR
+        if: ${{ steps.update-version.outcome == 'success' && steps.extract_changelog.outcome == 'success' }}
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          sign-commits: true
+          branch: release/v${{ steps.version-name.outputs.nextMajorStrict }}
+          commit-message: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
+          title: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
+          body: ${{ steps.extract_changelog.outputs.changelog }}
+          add-paths: |
+            CHANGELOG.md
+            gradle.properties
+            .fossify/release-marker.txt
+            fastlane/metadata/android/en-US/changelogs/*.txt
