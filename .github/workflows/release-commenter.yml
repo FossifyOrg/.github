@@ -5,6 +5,7 @@ on:
 
 jobs:
   releaseCommenter:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - id: app-token
