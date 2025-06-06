@@ -1,0 +1,5 @@
+{
+    "name": "Release",
+    "description": "Automatically creates releases when release-marker.txt is updated.",
+    "iconName": "octicon tag"
+}

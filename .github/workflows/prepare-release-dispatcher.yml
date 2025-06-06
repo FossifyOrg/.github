@@ -1,0 +1,94 @@
+name: Fossify release dispatcher
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "Trigger a specific repo"
+        required: false
+        type: choice
+        options:
+          - "FossifyOrg/Calculator"
+          - "FossifyOrg/Calendar"
+          - "FossifyOrg/Camera"
+          - "FossifyOrg/Clock"
+          - "FossifyOrg/Contacts"
+          - "FossifyOrg/File-Manager"
+          - "FossifyOrg/Gallery"
+          - "FossifyOrg/Keyboard"
+          - "FossifyOrg/Launcher"
+          - "FossifyOrg/Messages"
+          - "FossifyOrg/Music-Player"
+          - "FossifyOrg/Notes"
+          - "FossifyOrg/Paint"
+          - "FossifyOrg/Phone"
+          - "FossifyOrg/Thank-You"
+          - "FossifyOrg/Voice-Recorder"
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        with:
+          egress-policy: audit
+
+      - id: app-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const repos = [
+              'FossifyOrg/Calculator',
+              'FossifyOrg/Calendar',
+              'FossifyOrg/Camera',
+              'FossifyOrg/Clock',
+              'FossifyOrg/Contacts',
+              'FossifyOrg/File-Manager',
+              'FossifyOrg/Gallery',
+              'FossifyOrg/Keyboard',
+              'FossifyOrg/Launcher',
+              'FossifyOrg/Messages',
+              'FossifyOrg/Music-Player',
+              'FossifyOrg/Notes',
+              'FossifyOrg/Paint',
+              'FossifyOrg/Phone',
+              'FossifyOrg/Thank-You',
+              'FossifyOrg/Voice-Recorder',
+            ];
+
+            const selectedRepo = '${{ github.event.inputs.repository }}';
+            const manualDispatch = '${{ github.event_name }}' === 'workflow_dispatch';
+            let reposToProcess = [];
+
+            if (manualDispatch && selectedRepo) {
+              // manual dispatch for specific repo
+              reposToProcess = [selectedRepo];
+              console.log(`Manual dispatch for: ${selectedRepo}`);
+            } else {
+              // scheduled dispatch. day-based selection with wrap-around
+              const date = new Date();
+              const dayOfMonth = date.getUTCDate(); 
+              const dayOfMonthIndex = (dayOfMonth - 1) % repos.length;
+              reposToProcess = [repos[dayOfMonthIndex]];
+              console.log(`Scheduled dispatch for day ${dayOfMonth} (index ${dayOfMonthIndex}):`, reposToProcess);
+            }
+
+            // dispatch to selected repos
+            for (const repoPath of reposToProcess) {
+              console.log(`Dispatching to ${repoPath}`);
+              const [owner, repo] = repoPath.split('/');
+              await github.rest.repos.createDispatchEvent({
+                owner,
+                repo,
+                event_type: 'prepare-release'
+              });
+            }

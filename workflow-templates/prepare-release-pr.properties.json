@@ -1,0 +1,5 @@
+{
+    "name": "Prepare Release PR",
+    "description": "Automatically creates pull request for next release.",
+    "iconName": "octicon tag"
+}

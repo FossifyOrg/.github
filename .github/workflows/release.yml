@@ -1,24 +1,10 @@
-name: Android Release
+name: Release
 
 on:
   workflow_call:
     inputs:
-      tag:
-        description: "The git tag being released"
-        required: false
-        type: string
-        default: ""
-      flavor:
-        description: "Flavor to release (foss, gplay)"
-        required: false
-        type: string
-        default: "foss"
-      package_name:
-        description: "Application package (e.g. org.fossify.app)"
-        required: true
-        type: string
       track:
-        description: "Play Store track (e.g. beta, production)"
+        description: "Rollout track (e.g. beta, production)"
         required: false
         type: string
         default: "beta"
@@ -38,90 +24,34 @@ on:
         type: string
         default: "naveensingh"
 
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: true
+
 jobs:
-  release_foss:
-    if: inputs.flavor == 'foss' && inputs.tag != ''
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      version_name: ${{ steps.extract.outputs.version_name }}
+      package_name: ${{ steps.extract.outputs.package_name }}
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
-        with:
-          egress-policy: audit
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Checkout .github repository
+      - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          repository: FossifyOrg/.github
-          path: .github-repo
 
-      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
-      - uses: FossifyOrg/.github/.github/actions/decode-secrets@main
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-
-      - name: Set up JDK
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
-        with:
-          distribution: "temurin"
-          java-version: "17"
-
-      - name: Build Release APK
-        run: ./gradlew assembleFossRelease
-
-      - name: Setup NodeJS
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: "20"
-      - name: Install keep-a-changelog parser
-        run: npm install keep-a-changelog
-
-      - name: Extract Changelog Notes
-        id: extract_changelog
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
-        with:
-          script: |
-            const path = require('path');
-            const { formatForGitHub } = require('./.github-repo/scripts/changelog-parser.js');
-
-            const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
-            const tagVersion = "${{ inputs.tag }}";
-
-            try {
-              const notes = formatForGitHub(changelogPath, tagVersion, "${{ inputs.maintainer }}", process.env.GITHUB_REPOSITORY);
-              core.setOutput('changelog', notes);
-            } catch (error) {
-              core.setFailed(error.message);
-              return;
-            }
-
-      - id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
-        with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
-          body: ${{ steps.extract_changelog.outputs.changelog }}
-          draft: false
-          files: app/build/outputs/apk/foss/release/*release.apk
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-
-      - name: Clean up secrets
-        if: always()
-        uses: FossifyOrg/.github/.github/actions/cleanup-secrets@main
+      - name: Extract app version and package name
+        id: extract
+        run: |
+          echo "Extracting app version and package name from gradle.properties"
+          VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          PACKAGE_NAME=$(grep '^APP_ID=' gradle.properties | cut -d= -f2)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
   release_gplay:
-    if: inputs.flavor == 'gplay'
+    name: Google Play
+    needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
@@ -176,12 +106,97 @@ jobs:
         run: |
           bundle exec fastlane android deploy
         env:
-          FLAVOR: ${{ inputs.flavor }}
-          PACKAGE_NAME: ${{ inputs.package_name }}
+          FLAVOR: "gplay"
+          PACKAGE_NAME: ${{ needs.prepare.outputs.package_name }}
           JSON_KEY: fastlane/service-account.json
           TRACK: ${{ inputs.track }}
           ROLLOUT: ${{ inputs.rollout }}
           VALIDATE_ONLY: ${{ inputs.validate_only }}
+
+      - name: Clean up secrets
+        if: always()
+        uses: FossifyOrg/.github/.github/actions/cleanup-secrets@main
+
+  release_foss:
+    name: GitHub
+    needs: [prepare, release_gplay]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout .github repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: FossifyOrg/.github
+          path: .github-repo
+
+      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+      - uses: FossifyOrg/.github/.github/actions/decode-secrets@main
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build Release APK
+        run: ./gradlew assembleFossRelease
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+      - name: Install keep-a-changelog parser
+        run: npm install keep-a-changelog@2.6.2
+
+      - name: Extract Changelog Notes
+        id: extract_changelog
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const path = require('path');
+            const { formatForGitHub } = require('./.github-repo/scripts/changelog-parser.js');
+
+            const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
+            const tagVersion = "${{ needs.prepare.outputs.version_name }}";
+            if (!tagVersion) {
+              throw new Error('VERSION_NAME environment variable is not set.');
+            }
+
+            try {
+              const notes = formatForGitHub(changelogPath, tagVersion, "${{ inputs.maintainer }}", process.env.GITHUB_REPOSITORY);
+              core.setOutput('changelog', notes);
+            } catch (error) {
+              core.setFailed(error.message);
+              return;
+            }
+
+      - id: app-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        with:
+          tag_name: ${{ needs.prepare.outputs.version_name }}
+          name: ${{ needs.prepare.outputs.version_name }}
+          body: ${{ steps.extract_changelog.outputs.changelog }}
+          draft: false
+          files: app/build/outputs/apk/foss/release/*release.apk
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Clean up secrets
         if: always()
