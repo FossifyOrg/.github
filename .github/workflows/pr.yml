@@ -3,11 +3,6 @@ name: PR
 on:
     workflow_call:
         inputs:
-            run_wrapper_validation:
-                description: "Whether to run Gradle Wrapper Validation as a part of this workflow. True by default."
-                type: boolean
-                default: true
-                required: false
             run_lint:
                 description: "Whether to run Android lint as a part of this workflow. True by default."
                 type: boolean
@@ -18,35 +13,62 @@ on:
                 type: boolean
                 default: true
                 required: false
-            run_tests:
-                description: "Whether to run tests as a part of this workflow. True by default."
-                type: boolean
-                default: true
-                required: false
             test_task:
-                description: 'Tests gradle task to run. ":app:testCoreDebugUnitTest" by default'
+                description: 'Tests gradle task to run. ":app:testFossDebugUnitTest" by default'
                 type: string
-                default: ":app:testCoreDebugUnitTest"
+                default: ":app:testFossDebugUnitTest"
                 required: false
+
+concurrency:
+    group: pr-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
     wrapper-validation:
         name: "Validate Gradle Wrapper"
         runs-on: ubuntu-latest
-        if: ${{ inputs.run_wrapper_validation }}
         steps:
-            - uses: actions/checkout@v4
-            - uses: gradle/actions/wrapper-validation@v4
+            - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+            - uses: gradle/actions/wrapper-validation@8379f6a1328ee0e06e2bb424dadb7b159856a326
 
-    android-lint:
+    test:
+        needs: wrapper-validation
         runs-on: ubuntu-latest
-        if: ${{ inputs.run_lint }}
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-java@v4
+            - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+            - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
               with:
                   java-version: 17
                   distribution: "temurin"
+            - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+            - name: Run tests
+              run: ./gradlew ${{ inputs.test_task }}
+
+    detekt:
+        needs: test
+        runs-on: ubuntu-latest
+        if: ${{ inputs.run_detekt }}
+        steps:
+            - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+            - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+              with:
+                  java-version: 17
+                  distribution: "temurin"
+            - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+            - name: Run detekt checks
+              run: ./gradlew detekt
+
+    android-lint:
+        needs: test
+        runs-on: ubuntu-latest
+        if: ${{ inputs.run_lint }}
+        steps:
+            - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+            - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+              with:
+                  java-version: 17
+                  distribution: "temurin"
+            - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
             - name: Run Android lint
               id: lint
               run: ./gradlew lint
@@ -54,38 +76,14 @@ jobs:
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               run: ./gradlew updateLintBaseline
             - name: Upload new baseline
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               with:
                   name: "new-lint-baseline"
                   path: "app/lint-baseline.xml"
             - name: Upload results
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
               if: ${{ !cancelled() }}
               with:
                   name: "lint-results"
-                  path: "app/build/intermediates/lint_intermediate_text_report/coreDebug/lint-results-coreDebug.txt"
-
-    detekt:
-        runs-on: ubuntu-latest
-        if: ${{ inputs.run_detekt }}
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-java@v4
-              with:
-                  java-version: 17
-                  distribution: "temurin"
-            - name: Run detekt checks
-              run: ./gradlew detekt
-
-    test:
-        runs-on: ubuntu-latest
-        if: ${{ inputs.run_tests }}
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-java@v4
-              with:
-                  java-version: 17
-                  distribution: "temurin"
-            - name: Run tests
-              run: ./gradlew ${{ inputs.test_task }}
+                  path: "app/build/intermediates/lint_intermediate_text_report/fossDebug/lint-results-fossDebug.txt"

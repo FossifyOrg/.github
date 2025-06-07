@@ -9,8 +9,6 @@ jobs:
         uses: FossifyOrg/.github/.github/workflows/pr.yml@main
         # The following keys can be used to change defaults
         # with:
-        #     run_wrapper_validation: true
         #     run_lint: true
         #     run_detekt: true
-        #     run_tests: true
-        #     test_task: ":app:testCoreDebugUnitTest"
+        #     test_task: ":app:testFossDebugUnitTest"
