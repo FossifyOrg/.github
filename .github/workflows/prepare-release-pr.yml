@@ -112,7 +112,7 @@ jobs:
           sign-commits: true
           assignees: naveensingh
           reviewers: naveensingh
-          branch: release/v${{ steps.version-name.outputs.nextMajorStrict }}
+          branch: fossifybot/release/v${{ steps.version-name.outputs.nextMajorStrict }}
           commit-message: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
           title: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
           body: ${{ steps.extract_changelog.outputs.changelog }}
