@@ -110,6 +110,8 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           sign-commits: true
+          assignees: naveensingh
+          reviewers: naveensingh
           branch: release/v${{ steps.version-name.outputs.nextMajorStrict }}
           commit-message: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
           title: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
