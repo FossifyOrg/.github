@@ -1,0 +1,5 @@
+{
+    "name": "Fastlane metadata validation",
+    "description": "Workflow for validating Fastlane metadata files in pull requests",
+    "iconName": "octicon check-circle"
+}

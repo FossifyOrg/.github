@@ -2,12 +2,6 @@ name: Prepare Release PR
 
 on:
   workflow_call:
-    inputs:
-      maintainer:
-        description: "Maintainer username"
-        required: false
-        type: string
-        default: "naveensingh"
 
 concurrency:
   group: release-pr-${{ github.repository }}
@@ -15,6 +9,7 @@ concurrency:
 
 jobs:
   release-pr:
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, 'chore(release)') }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -90,7 +85,7 @@ jobs:
               fs.writeFileSync(path.join(metadataPath, `${versionCode}.txt`), fastlaneNotes);
 
               // Use GitHub format for the PR body
-              const notes = formatForGitHub(changelogPath, tagVersion, "${{ inputs.maintainer }}", process.env.GITHUB_REPOSITORY);
+              const notes = formatForGitHub(changelogPath, tagVersion,  null, process.env.GITHUB_REPOSITORY);
               core.setOutput('changelog', notes);
             } catch (error) {
               core.setFailed(error.message);
@@ -115,7 +110,10 @@ jobs:
           branch: fossifybot/release/v${{ steps.version-name.outputs.nextMajorStrict }}
           commit-message: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
           title: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
-          body: ${{ steps.extract_changelog.outputs.changelog }}
+          body: |
+            ## Release notes
+
+            ${{ steps.extract_changelog.outputs.changelog }}
           add-paths: |
             CHANGELOG.md
             gradle.properties
