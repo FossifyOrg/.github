@@ -53,10 +53,6 @@ function extractReleaseNotes(changelogPath, version, format = FORMAT_GITHUB, mai
     if (!repository) {
       throw new Error('GitHub repository (e.g., "Fossify/Store") is required for GitHub format.');
     }
-
-    if (!maintainer) {
-      throw new Error('Maintainer username is required for GitHub format.');
-    }
   }
 
   if (!fs.existsSync(changelogPath)) {
@@ -130,7 +126,9 @@ function extractReleaseNotes(changelogPath, version, format = FORMAT_GITHUB, mai
     githubSpecificContent += `**Full Changelog:** ${compareUrl}`;
 
     githubSpecificContent += '\n\n';
-    githubSpecificContent += `<sub>_This is an automated release; ping [@${maintainer}](https://github.com/${maintainer}) for urgent issues._</sub>`;
+    if (maintainer) {
+      githubSpecificContent += `<sub>_This is an automated release; ping [@${maintainer}](https://github.com/${maintainer}) for urgent issues._</sub>`;
+    }
 
     if (githubSpecificContent.length > 0) {
       notes += githubSpecificContent;
