@@ -5,6 +5,7 @@ on:
 
 jobs:
   label-prs:
+    if: false
     name: "Label PRs"
     runs-on: ubuntu-latest
     steps:
