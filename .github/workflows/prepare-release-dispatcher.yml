@@ -6,10 +6,12 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: "Trigger a specific repo"
-        required: false
+        description: "Trigger a specific repo or all"
+        required: true
+        default: "all"
         type: choice
         options:
+          - "all"
           - "FossifyOrg/Calculator"
           - "FossifyOrg/Calendar"
           - "FossifyOrg/Camera"
@@ -26,6 +28,10 @@ on:
           - "FossifyOrg/Phone"
           - "FossifyOrg/Thank-You"
           - "FossifyOrg/Voice-Recorder"
+
+concurrency:
+  group: "prepare-release-dispatcher-${{ github.event.inputs.repository || 'all' }}"
+  cancel-in-progress: true
 
 jobs:
   dispatch:
@@ -71,25 +77,31 @@ jobs:
             let reposToProcess = [];
 
             if (manualDispatch && selectedRepo) {
-              // manual dispatch for specific repo
-              reposToProcess = [selectedRepo];
-              console.log(`Manual dispatch for: ${selectedRepo}`);
+              if (selectedRepo === 'all') {
+                reposToProcess = repos;
+                console.log(`Manual dispatch for all repositories (${repos.length} repos):`, reposToProcess);
+              } else {
+                reposToProcess = [selectedRepo];
+                console.log(`Manual dispatch for: ${selectedRepo}`);
+              }
             } else {
-              // scheduled dispatch. day-based selection with wrap-around
-              const date = new Date();
-              const dayOfMonth = date.getUTCDate(); 
-              const dayOfMonthIndex = (dayOfMonth - 1) % repos.length;
-              reposToProcess = [repos[dayOfMonthIndex]];
-              console.log(`Scheduled dispatch for day ${dayOfMonth} (index ${dayOfMonthIndex}):`, reposToProcess);
+              reposToProcess = repos;
+              console.log(`Scheduled dispatch to all repositories (${repos.length} repos):`, reposToProcess);
             }
 
-            // dispatch to selected repos
             for (const repoPath of reposToProcess) {
               console.log(`Dispatching to ${repoPath}`);
               const [owner, repo] = repoPath.split('/');
-              await github.rest.repos.createDispatchEvent({
-                owner,
-                repo,
-                event_type: 'prepare-release'
-              });
+
+              try {
+                await github.rest.repos.createDispatchEvent({
+                  owner,
+                  repo,
+                  event_type: 'prepare-release'
+                });
+              } catch (e) {
+                console.warn(`${repoPath} failed: ${e.message}`);
+              }
+
+              await new Promise(r => setTimeout(r, 1000));
             }
