@@ -105,6 +105,7 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           sign-commits: true
+          labels: "testers needed"
           branch: fossifybot/release/v${{ steps.version-name.outputs.nextMajorStrict }}
           commit-message: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
           title: "chore(release): v${{ steps.version-name.outputs.nextStrict }} (${{ steps.version-code.outputs.nextVersionCode }})"
