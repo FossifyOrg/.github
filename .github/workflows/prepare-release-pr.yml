@@ -17,7 +17,11 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
       - name: Checkout .github repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -38,8 +42,29 @@ jobs:
           token: ${{ github.token }}
           branch: ${{ github.event.repository.default_branch }}
 
-      - name: Update files and check changelog
+      - name: Check if release branch needs update
         if: ${{ steps.version-name.outputs.nextStrict }}
+        id: skip-update
+        run: |
+          set -euo pipefail
+          MAIN="${{ github.event.repository.default_branch }}"
+          RELEASE="fossifybot/release/v${{ steps.version-name.outputs.nextMajorStrict }}"
+
+          if git rev-parse --verify -q "origin/$RELEASE"; then
+            if git merge-base --is-ancestor "origin/$MAIN" "origin/$RELEASE"; then
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+              echo "Release branch is up-to-date."
+            else
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "Release branch is behind the main branch."
+            fi
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "Release branch doesn't exist yet."
+          fi
+
+      - name: Update files and check changelog
+        if: ${{ steps.skip-update.outputs.needs_update == 'true' && steps.version-name.outputs.nextStrict }}
         id: update-version
         run: |
           chmod +x .github-repo/scripts/update-version.sh
@@ -53,10 +78,13 @@ jobs:
           fi
 
       - name: Setup NodeJS
+        if: ${{ steps.update-version.outcome == 'success' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "20"
+
       - name: Install keep-a-changelog parser
+        if: ${{ steps.update-version.outcome == 'success' }}
         run: npm install keep-a-changelog@2.6.2
 
       - name: Extract changelog notes
