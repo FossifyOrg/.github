@@ -32,6 +32,7 @@ jobs:
           only-labels: ${{ inputs.stale_label }}
           stale-issue-label: ${{ inputs.stale_label }}
           stale-pr-label: ${{ inputs.stale_label }}
+          close-issue-label: invalid
           remove-stale-when-updated: false
           ignore-updates: true
           close-issue-message: This issue was automatically closed due to inactivity and/or lack of response from the author. If additional information becomes available, please leave a comment to reopen the issue.
