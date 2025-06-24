@@ -1,0 +1,64 @@
+name: Update baselines
+
+on:
+  workflow_call:
+
+concurrency:
+  group: update-baseline-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  update-baselines:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Checkout .github repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: FossifyOrg/.github
+          path: .github-repo
+
+      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+
+      - name: Set up JDK
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Update baselines
+        run: ./gradlew updateLintBaseline detektBaseline
+
+      - name: Check for diff
+        id: git-diff
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get app token
+        if: ${{ steps.git-diff.outputs.changed == 'true' }}
+        id: app-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Create or update baseline refresh PR
+        if: ${{ steps.git-diff.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          sign-commits: true
+          branch: fossifybot/update-lint-baselines
+          title: "chore: update lint baselines"
+          commit-message: "chore: update lint baselines"
+          body: ""
+          add-paths: |
+            **/lint-baseline.xml
+            **/detekt-baseline.xml

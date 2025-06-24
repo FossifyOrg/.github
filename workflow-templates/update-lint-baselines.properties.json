@@ -1,0 +1,5 @@
+{
+    "name": "Update lint baselines",
+    "description": "Workflow for updating lint baselines in the project",
+    "iconName": "octicon sync"
+}
