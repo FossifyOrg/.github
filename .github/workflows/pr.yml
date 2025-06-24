@@ -45,7 +45,7 @@ jobs:
               run: ./gradlew ${{ inputs.test_task }}
 
     detekt:
-        needs: test
+        needs: wrapper-validation
         runs-on: ubuntu-latest
         if: ${{ inputs.run_detekt }}
         steps:
@@ -59,7 +59,7 @@ jobs:
               run: ./gradlew detekt
 
     android-lint:
-        needs: test
+        needs: wrapper-validation
         runs-on: ubuntu-latest
         if: ${{ inputs.run_lint }}
         steps:
