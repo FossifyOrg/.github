@@ -20,7 +20,8 @@
 
 #### Checklist
 - [ ] I read the [contribution guidelines](../blob/HEAD/CONTRIBUTING.md).
-- [ ] I updated the "Unreleased" section in `CHANGELOG.md` (if applicable).
 - [ ] I manually tested my changes on device/emulator (if applicable).
+- [ ] I updated the "Unreleased" section in `CHANGELOG.md` (if applicable).
+- [ ] All checks are passing.
 
 <!-- NOTE: Keep CHANGELOG.md updates clear and concise, they are visible to *all* users. -->
