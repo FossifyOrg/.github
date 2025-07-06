@@ -174,7 +174,7 @@ jobs:
             }
 
             try {
-              const notes = formatForGitHub(changelogPath, tagVersion, "${{ inputs.maintainer }}", process.env.GITHUB_REPOSITORY);
+              const notes = formatForGitHub(changelogPath, tagVersion, null, process.env.GITHUB_REPOSITORY);
               core.setOutput('changelog', notes);
             } catch (error) {
               core.setFailed(error.message);
