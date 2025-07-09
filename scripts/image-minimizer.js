@@ -150,7 +150,7 @@ module.exports = async ({ github, context }) => {
         if (shouldModify) {
             wasMatchModified = true;
             console.log(`Modifying match '${match}'`);
-            return `<img alt="${g1}" src="${g2}" width=${Math.min(600, Math.floor(IMG_MAX_HEIGHT_PX * probeAspectRatio))} />`;
+            return `<img alt="ignoreImageMinify" src="${g2}" width=${Math.min(600, Math.floor(IMG_MAX_HEIGHT_PX * probeAspectRatio))} />`;
         }
 
         console.log(`Match '${match}' is ok/will not be modified`);
