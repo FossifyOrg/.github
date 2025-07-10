@@ -3,8 +3,13 @@ name: Image Minimizer
 on:
   workflow_call:
 
+concurrency:
+  group: image-minimizer-${{ github.event_name }}-${{ github.event.comment.id || github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   try-minimize:
+    if: ${{ github.actor != 'fossifybot[bot]' }}
     runs-on: ubuntu-latest
 
     steps:
