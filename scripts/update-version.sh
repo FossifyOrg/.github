@@ -72,7 +72,7 @@ fi
 # update release-marker file for triggering the release workflow
 echo "Creating release marker..."
 mkdir -p .fossify
-cat > .fossify/release-marker.txt << EOF
+cat >.fossify/release-marker.txt <<EOF
 # Auto-generated file. DO NOT EDIT.
 $NEW_VERSION
 EOF
