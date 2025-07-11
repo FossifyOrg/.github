@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Checkout .github repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -41,8 +42,8 @@ jobs:
         with:
           token: ${{ github.token }}
           branch: ${{ github.event.repository.default_branch }}
-          noNewCommitBehavior: 'warn'
-          noVersionBumpBehavior: 'warn'
+          noNewCommitBehavior: "warn"
+          noVersionBumpBehavior: "warn"
 
       - name: Check if release branch needs update
         if: ${{ steps.version-name.outputs.nextStrict }}
@@ -89,14 +90,75 @@ jobs:
         if: ${{ steps.update-version.outcome == 'success' }}
         run: npm install keep-a-changelog@2.6.2
 
+      - name: Normalize changelog
+        if: ${{ steps.update-version.outcome == 'success' }}
+        run: |
+          npm exec -- keep-a-changelog --file="CHANGELOG.md"
+
+      - name: Check for new translations
+        id: check-for-translations
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [[ -n "$last_tag" ]]; then
+            range="$last_tag..HEAD"
+          else
+            range="HEAD"
+          fi
+
+          if git log $range --grep='chore(l10n)' --quiet; then
+            echo "has_new_translations=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_new_translations=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add translations entry in changelog
+        if: ${{ steps.check-for-translations.outputs.has_new_translations == 'true' && steps.update-version.outcome == 'success' }}
+        id: update_changelog
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { parser } = require('keep-a-changelog');
+            const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
+
+            if (!fs.existsSync(changelogPath)) {
+              throw new Error(`Changelog file not found at ${changelogPath}`);
+            }
+
+            const changelogContent = fs.readFileSync(changelogPath, 'utf8');
+            let parsed;
+            try {
+              parsed = parser(changelogContent);
+              console.log(`Parsed ${parsed.releases.length} releases from changelog.`);
+            } catch (error) {
+              throw new Error(`Failed to parse CHANGELOG.md: ${error.message}`);
+            }
+
+            const tagVersion = "${{ steps.version-name.outputs.nextStrict }}";
+            const release = parsed.findRelease(tagVersion);
+            if (!release) {
+              throw new Error(`No changelog entry found for version ${tagVersion} in ${changelogPath}.`);
+            }
+
+            const changedEntries = release.changes.get('changed') || [];
+            if (!changedEntries.some(entry => entry.toString().includes('Updated translations'))) {
+              release.changed('Updated translations');
+              const updatedChangelog = parsed.toString();       
+              fs.writeFileSync(changelogPath, updatedChangelog, 'utf8');
+              console.log(`Added "Updated translations" to version ${tagVersion}`);
+            } else {
+              console.log(`"Updated translations" already present for version ${tagVersion}.`);
+            }
+
       - name: Extract changelog notes
         if: ${{ steps.update-version.outcome == 'success' }}
         id: extract_changelog
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
-            const path = require('path');
             const fs = require('fs');
+            const path = require('path');
             const { formatForGitHub, formatForFastlane } = require('./.github-repo/scripts/changelog-parser.js');
 
             const changelogPath = path.join(process.env.GITHUB_WORKSPACE, 'CHANGELOG.md');
