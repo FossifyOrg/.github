@@ -93,7 +93,7 @@ jobs:
       - name: Normalize changelog
         if: ${{ steps.update-version.outcome == 'success' }}
         run: |
-          npm exec -- keep-a-changelog --file="CHANGELOG.md"
+          npm exec -- keep-a-changelog --file="CHANGELOG.md" --no-v-prefix
 
       - name: Check for new translations
         id: check-for-translations
