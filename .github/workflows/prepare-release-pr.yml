@@ -90,11 +90,6 @@ jobs:
         if: ${{ steps.update-version.outcome == 'success' }}
         run: npm install keep-a-changelog@2.6.2
 
-      - name: Normalize changelog
-        if: ${{ steps.update-version.outcome == 'success' }}
-        run: |
-          npm exec -- keep-a-changelog --file="CHANGELOG.md" --no-v-prefix
-
       - name: Check for new translations
         id: check-for-translations
         run: |
@@ -150,6 +145,11 @@ jobs:
             } else {
               console.log(`"Updated translations" already present for version ${tagVersion}.`);
             }
+
+      - name: Normalize changelog
+        if: ${{ steps.update-version.outcome == 'success' }}
+        run: |
+          npx keep-a-changelog --file="CHANGELOG.md" --no-v-prefix
 
       - name: Extract changelog notes
         if: ${{ steps.update-version.outcome == 'success' }}
