@@ -14,9 +14,9 @@
 #### Before/After Screenshots/Screen Record
 <!-- For changes affecting UI, consider attaching screenshots or a video. Delete this section otherwise. -->
 
-#### Fixes the following issue(s)
-<!-- Prefix issues with "Fixes" so that GitHub closes them when the PR is merged (note that each "Fixes #" should be in its own item). -->
-- Fixes #
+#### Closes the following issue(s)
+<!-- Prefix issues with "Closes" so that GitHub closes them when the PR is merged (note that each "Closes #" should be in its own item). -->
+- Closes #
 
 #### Checklist
 - [ ] I read the [contribution guidelines](../blob/HEAD/CONTRIBUTING.md).
