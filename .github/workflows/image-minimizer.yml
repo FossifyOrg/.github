@@ -5,7 +5,7 @@ on:
 
 concurrency:
   group: image-minimizer-${{ github.event_name }}-${{ github.event.comment.id || github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   try-minimize:
