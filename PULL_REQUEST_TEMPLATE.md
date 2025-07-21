@@ -11,7 +11,7 @@
 - Fixed accent color contrast to meet WCAG AA
 - Updated strings
 
-#### Before/After Screenshots/Screen Record
+#### Before & after preview
 <!-- For changes affecting UI, consider attaching screenshots or a video. Delete this section otherwise. -->
 
 #### Closes the following issue(s)
