@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  validate:
+  fastlane:
     runs-on: ubuntu-latest
 
     steps:

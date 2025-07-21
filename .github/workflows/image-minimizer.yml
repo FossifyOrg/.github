@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  try-minimize:
+  minimize:
     if: ${{ github.actor != 'fossifybot[bot]' }}
     runs-on: ubuntu-latest
 

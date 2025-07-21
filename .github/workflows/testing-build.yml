@@ -15,7 +15,7 @@ on:
                 required: false
 
 jobs:
-    testing_build:
+    build:
         runs-on: ubuntu-latest
         if: contains(github.event.pull_request.labels.*.name, inputs.expected_label)
         steps:
