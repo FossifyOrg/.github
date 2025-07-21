@@ -90,24 +90,8 @@ jobs:
         if: ${{ steps.update-version.outcome == 'success' }}
         run: npm install keep-a-changelog@2.6.2
 
-      - name: Check for new translations
-        id: check-for-translations
-        run: |
-          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
-          if [[ -n "$last_tag" ]]; then
-            range="$last_tag..HEAD"
-          else
-            range="HEAD"
-          fi
-
-          if git log $range --grep='chore(l10n)' --quiet; then
-            echo "has_new_translations=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_new_translations=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Add translations entry in changelog
-        if: ${{ steps.check-for-translations.outputs.has_new_translations == 'true' && steps.update-version.outcome == 'success' }}
+        if: ${{ steps.update-version.outcome == 'success' }}
         id: update_changelog
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
