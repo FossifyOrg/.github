@@ -8,6 +8,16 @@ on:
         type: number
         default: 14
         required: false
+      days_before_issue_close:
+        description: "Number of days of inactivity before an issue is closed for lack of response"
+        type: number
+        default: 14
+        required: false
+      days_before_pr_close:
+        description: "Number of days of inactivity before a PR is closed for lack of response"
+        type: number
+        default: 24
+        required: false
       stale_label:
         description: "Label to use for marking issues that are waiting for a response"
         type: string
@@ -29,6 +39,8 @@ jobs:
           repo-token: ${{ steps.app-token.outputs.token }}
           days-before-stale: -1
           days-before-close: ${{ inputs.days_before_close }}
+          days-before-issue-close: ${{ inputs.days_before_issue_close }}
+          days-before-pr-close: ${{ inputs.days_before_pr_close }}
           only-labels: ${{ inputs.stale_label }}
           stale-issue-label: ${{ inputs.stale_label }}
           stale-pr-label: ${{ inputs.stale_label }}

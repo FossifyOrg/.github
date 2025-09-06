@@ -9,6 +9,8 @@ jobs:
   call-no-response-workflow:
     uses: FossifyOrg/.github/.github/workflows/no-response.yml@main
     with:
+      days_before_issue_close: 14
+      days_before_pr_close: 24
       days_before_close: 14
       stale_label: "waiting for author"
     secrets: inherit
