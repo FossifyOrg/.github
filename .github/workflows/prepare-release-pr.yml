@@ -93,7 +93,7 @@ jobs:
       - name: Add translations entry in changelog
         if: ${{ steps.update-version.outcome == 'success' }}
         id: update_changelog
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           script: |
             const fs = require('fs');
@@ -138,7 +138,7 @@ jobs:
       - name: Extract changelog notes
         if: ${{ steps.update-version.outcome == 'success' }}
         id: extract_changelog
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           script: |
             const fs = require('fs');
