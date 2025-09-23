@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           MAIN="${{ github.event.repository.default_branch }}"
-          RELEASE="fossifybot/release/v${{ steps.version-name.outputs.nextMajorStrict }}"
+          RELEASE="fossifybot/release"
 
           if git rev-parse --verify -q "origin/$RELEASE"; then
             if git merge-base --is-ancestor "origin/$MAIN" "origin/$RELEASE"; then
