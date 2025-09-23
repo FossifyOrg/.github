@@ -16,7 +16,7 @@ on:
       days_before_pr_close:
         description: "Number of days of inactivity before a PR is closed for lack of response"
         type: number
-        default: 24
+        default: 14
         required: false
       stale_label:
         description: "Label to use for marking issues that are waiting for a response"
