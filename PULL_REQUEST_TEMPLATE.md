@@ -11,6 +11,10 @@
 - Fixed accent color contrast to meet WCAG AA
 - Updated strings
 
+#### Tests performed
+<!-- Test your changes on different devices and conditions as mentioned in the guidelines. You can decide what tests to do based on your patches. -->
+ - 
+
 #### Before & after preview
 <!-- For changes affecting UI, consider attaching screenshots or a video. Delete this section otherwise. -->
 
@@ -22,6 +26,7 @@
 - [ ] I read the [contribution guidelines](../blob/HEAD/CONTRIBUTING.md).
 - [ ] I manually tested my changes on device/emulator (if applicable).
 - [ ] I updated the "Unreleased" section in `CHANGELOG.md` (if applicable).
+- [ ] I have reviewed my own pull request (no typos, formatting errors, etc.).
 - [ ] All checks are passing.
 
 <!-- NOTE: Keep CHANGELOG.md updates clear and concise, they are visible to *all* users. -->
