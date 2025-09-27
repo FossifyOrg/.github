@@ -26,7 +26,7 @@
 - [ ] I read the [contribution guidelines](../blob/HEAD/CONTRIBUTING.md).
 - [ ] I manually tested my changes on device/emulator (if applicable).
 - [ ] I updated the "Unreleased" section in `CHANGELOG.md` (if applicable).
-- [ ] I have reviewed my own pull request (no typos, formatting errors, etc.).
+- [ ] I have self-reviewed my pull request (no typos, formatting errors, etc.).
 - [ ] All checks are passing.
 
 <!-- NOTE: Keep CHANGELOG.md updates clear and concise, they are visible to *all* users. -->
