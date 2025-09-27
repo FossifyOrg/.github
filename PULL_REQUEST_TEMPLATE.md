@@ -12,7 +12,7 @@
 - Updated strings
 
 #### Tests performed
-<!-- Test your changes on different devices and conditions as mentioned in the guidelines. You can decide what tests to do based on your patches. -->
+<!-- If applicable, test your changes on different devices and conditions as mentioned in the guidelines (you can decide what tests to do based on your patches). Delete this section otherwise. -->
  - 
 
 #### Before & after preview
