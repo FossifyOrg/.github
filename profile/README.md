@@ -12,4 +12,9 @@ It emerged as a fork of the [discontinued](https://github.com/SimpleMobileTools/
 #### Questions or Feedback?
 If you have questions or want to learn more, start a discussion [here](https://github.com/orgs/FossifyOrg/discussions) or reach out at [hello@fossify.org](mailto:hello@fossify.org).
 
+
+#### Signing key
+Signing key (SHA256 fingerprint) of all our application:
+> AF:FD:B1:24:D3:F4:72:0C:2F:98:DB:CA:9E:AC:BA:05:14:FB:A4:30:6E:20:A2:78:6C:86:1C:3C:0D:6F:F2:92
+
 Your contributions are appreciated! 🌟
