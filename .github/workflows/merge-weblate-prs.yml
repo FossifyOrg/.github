@@ -59,7 +59,7 @@ jobs:
             ["FossifyOrg/Music-Player"]="weblate-fossify-music-player"
             ["FossifyOrg/Notes"]="weblate-fossify-notes"
             ["FossifyOrg/Paint"]="weblate-fossify-draw"
-            ["FossifyOrg/Phone"]="weblate-fossify-phone"
+            ["FossifyOrg/Phone"]="weblate-fossify-dialer"
             ["FossifyOrg/Thank-You"]="weblate-fossify-thank-you"
             ["FossifyOrg/Voice-Recorder"]="weblate-fossify-voice-recorder"
           )
