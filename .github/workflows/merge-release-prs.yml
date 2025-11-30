@@ -91,7 +91,7 @@ jobs:
               echo "[$repo]: Failed to approve PR #$PR_NUMBER"
             fi
 
-            if gh pr merge --repo "$repo" --squash "$PR_NUMBER" 2>/dev/null; then
+            if gh pr merge --repo "$repo" --squash --auto "$PR_NUMBER" 2>/dev/null; then
               echo "[$repo]: PR #$PR_NUMBER merged successfully"
             else
               echo "[$repo]: Failed to merge PR #$PR_NUMBER. Skipping."
