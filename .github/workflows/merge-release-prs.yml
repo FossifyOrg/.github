@@ -77,7 +77,7 @@ jobs:
           for repo in "${REPOS[@]}"; do
             echo "Processing: $repo"
             
-            PR_NUMBER=$(gh pr list --repo "$repo" --head "$BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null)
+            PR_NUMBER=$(gh pr list --repo "$repo" --head "$BRANCH" --search "author:fossifybot[bot]" --json number --jq '.[0].number // empty' 2>/dev/null)
             if [[ -z "$PR_NUMBER" ]]; then
               echo "[$repo]: No open PR found for branch $BRANCH. Skipping."
               continue
