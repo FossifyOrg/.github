@@ -101,15 +101,13 @@ jobs:
               continue
             fi
 
-            HEAD_REF="weblate:${BRANCH}"
-            PR_NUMBER=$(gh pr list --repo "$repo" --head "$HEAD_REF" --json number --jq '.[0].number // empty' 2>/dev/null)
+            PR_NUMBER=$(gh pr list --repo "$repo" --head "$BRANCH" --search "author:weblate" --json number --jq '.[0].number // empty' 2>/dev/null)
             if [[ -z "$PR_NUMBER" ]]; then
-              echo "[$repo]: No open PR found for head $HEAD_REF. Skipping."
+              echo "[$repo]: No open PR found for head $BRANCH. Skipping."
               continue
             fi
 
-            echo "[$repo]: Found PR #$PR_NUMBER for head $HEAD_REF"
-
+            echo "[$repo]: Found PR #$PR_NUMBER for head $BRANCH"
             if gh pr review --repo "$repo" --approve "$PR_NUMBER" 2>/dev/null; then
               echo "[$repo]: PR #$PR_NUMBER approved"
             else
