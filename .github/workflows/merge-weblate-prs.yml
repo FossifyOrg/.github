@@ -115,7 +115,7 @@ jobs:
             fi
 
             # rebase merge so individual commits are preserved
-            if gh pr merge --repo "$repo" --rebase "$PR_NUMBER" 2>/dev/null; then
+            if gh pr merge --repo "$repo" --rebase --auto "$PR_NUMBER" 2>/dev/null; then
               echo "[$repo]: PR #$PR_NUMBER merged successfully"
             else
               echo "[$repo]: Failed to merge PR #$PR_NUMBER. Skipping."
