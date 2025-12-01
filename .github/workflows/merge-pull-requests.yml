@@ -46,7 +46,7 @@ on:
         default: false
         type: boolean
       pr_author:
-        description: "Required PR author (empty = any)"
+        description: "Required PR author"
         required: false
         default: "fossifybot[bot]"
         type: string
