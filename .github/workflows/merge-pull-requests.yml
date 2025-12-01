@@ -1,0 +1,153 @@
+name: Merge pull requests
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "Merge PR in a specific repo or all"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - "all"
+          - "FossifyOrg/Calculator"
+          - "FossifyOrg/Calendar"
+          - "FossifyOrg/Camera"
+          - "FossifyOrg/Clock"
+          - "FossifyOrg/Contacts"
+          - "FossifyOrg/File-Manager"
+          - "FossifyOrg/Gallery"
+          - "FossifyOrg/Keyboard"
+          - "FossifyOrg/Launcher"
+          - "FossifyOrg/Messages"
+          - "FossifyOrg/Music-Player"
+          - "FossifyOrg/Notes"
+          - "FossifyOrg/Paint"
+          - "FossifyOrg/Phone"
+          - "FossifyOrg/Thank-You"
+          - "FossifyOrg/Voice-Recorder"
+      branch:
+        description: "Branch name to merge"
+        required: false
+        default: "fossifybot/release"
+        type: string
+      merge_method:
+        description: "Merge method"
+        required: true
+        default: "squash"
+        type: choice
+        options:
+          - "squash"
+          - "merge"
+          - "rebase"
+      force_admin:
+        description: "Bypass branch protection (dangerous)"
+        required: false
+        default: false
+        type: boolean
+      pr_author:
+        description: "Required PR author (empty = any)"
+        required: false
+        default: "fossifybot[bot]"
+        type: string
+
+concurrency:
+  group: "merge-pull-requests"
+  cancel-in-progress: true
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
+        with:
+          egress-policy: audit
+
+      - name: Merge pull requests
+        run: |
+          set -uo pipefail
+
+          REPOS=(
+              "FossifyOrg/Calculator"
+              "FossifyOrg/Calendar"
+              "FossifyOrg/Camera"
+              "FossifyOrg/Clock"
+              "FossifyOrg/Contacts"
+              "FossifyOrg/File-Manager"
+              "FossifyOrg/Gallery"
+              "FossifyOrg/Keyboard"
+              "FossifyOrg/Launcher"
+              "FossifyOrg/Messages"
+              "FossifyOrg/Music-Player"
+              "FossifyOrg/Notes"
+              "FossifyOrg/Paint"
+              "FossifyOrg/Phone"
+              "FossifyOrg/Thank-You"
+              "FossifyOrg/Voice-Recorder"
+          )
+
+          SELECTED_REPO="${{ github.event.inputs.repository }}"
+          BRANCH="${{ github.event.inputs.branch }}"
+          MERGE_METHOD="${{ github.event.inputs.merge_method }}"
+          FORCE_ADMIN="${{ github.event.inputs.force_admin }}"
+          PR_AUTHOR="${{ github.event.inputs.pr_author }}"
+
+          case "$MERGE_METHOD" in
+              squash) MERGE_FLAG="--squash" ;;
+              merge) MERGE_FLAG="--merge"  ;;
+              rebase) MERGE_FLAG="--rebase" ;;
+              *)
+                  echo "Invalid merge_method: $MERGE_METHOD"
+                  exit 1
+              ;;
+          esac
+
+          if [[ "$FORCE_ADMIN" == "true" ]]; then
+              ADMIN_FLAG="--admin"
+          else
+              ADMIN_FLAG="--auto"
+          fi
+
+          if [[ "$SELECTED_REPO" != "all" ]]; then
+              REPOS=("$SELECTED_REPO")
+              echo "Processing single repository: $SELECTED_REPO"
+          else
+              echo "Processing all repositories (${#REPOS[@]} repos)"
+          fi
+
+          SEARCH_ARGS=()
+          if [[ -n "$PR_AUTHOR" ]]; then
+              SEARCH_ARGS+=(--search "author:$PR_AUTHOR")
+          fi
+
+          for repo in "${REPOS[@]}"; do
+              echo "Processing: $repo"
+              
+              PR_NUMBER=$(gh pr list --repo "$repo" --head "$BRANCH" "${SEARCH_ARGS[@]}" --json number --jq '.[0].number // empty' 2>/dev/null)
+              if [[ -z "$PR_NUMBER" ]]; then
+                  echo "[$repo]: No open PR found for branch $BRANCH (author filter: '${PR_AUTHOR:-any}'). Skipping."
+                  continue
+              fi
+              
+              echo "[$repo]: Found PR #$PR_NUMBER for branch $BRANCH"
+
+              if gh pr review --repo "$repo" --approve "$PR_NUMBER" 2>/dev/null; then
+                  echo "[$repo]: PR #$PR_NUMBER approved"
+              else
+                  echo "[$repo]: Failed to approve PR #$PR_NUMBER"
+              fi
+              
+              if gh pr merge --repo "$repo" $MERGE_FLAG $ADMIN_FLAG "$PR_NUMBER" 2>/dev/null; then
+                  echo "[$repo]: PR #$PR_NUMBER merged successfully"
+              else
+                  echo "[$repo]: Failed to merge PR #$PR_NUMBER. Skipping."
+              fi
+              
+              sleep 1
+          done
+
+          echo "Done processing all repositories."
