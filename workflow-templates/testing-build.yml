@@ -2,12 +2,13 @@ name: Testing build (on PR)
 
 on:
     pull_request:
-        branches: [ main ]
-        types: [ labeled, opened, synchronize, reopened ]
+        branches: [main]
+        types: [labeled, opened, synchronize, reopened]
 
 jobs:
     call-testing-build-workflow:
         uses: FossifyOrg/.github/.github/workflows/testing-build.yml@main
+        secrets: inherit
         # The following keys can be used to change defaults
         # with:
         #     build_task: 'aseembleFossDebug'

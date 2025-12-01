@@ -1,39 +1,81 @@
 name: Testing build (on PR)
 
 on:
-    workflow_call:
-        inputs:
-            build_task:
-                description: 'Gradle task to run to build APK. "assembleFossDebug" by default'
-                type: string
-                default: 'assembleFossDebug'
-                required: false
-            expected_label:
-                description: 'Label to look for to run the build. "testers needed" by default'
-                type: string
-                default: 'testers needed'
-                required: false
+  workflow_call:
+    inputs:
+      build_task:
+        description: 'Gradle task to run to build APK. "assembleFossDebug" by default'
+        type: string
+        default: "assembleFossDebug"
+        required: false
+      expected_label:
+        description: 'Label to look for to run the build. "testers needed" by default'
+        type: string
+        default: "testers needed"
+        required: false
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        if: contains(github.event.pull_request.labels.*.name, inputs.expected_label)
-        steps:
-            - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-            - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
-              with:
-                  java-version: 17
-                  distribution: 'temurin'
-            - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+  build:
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, inputs.expected_label)
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          java-version: 17
+          distribution: "temurin"
+      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
 
-            - name: Clean project
-              run: ./gradlew clean
+      - name: Clean project
+        run: ./gradlew clean
 
-            - name: Build debug APK
-              run: ./gradlew ${{ inputs.build_task }}
-            - name: Upload APK
-              id: upload
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-              with:
-                  name: 'test-build'
-                  path: 'app/build/outputs/apk/**/*.apk'
+      - name: Build debug APK
+        run: ./gradlew ${{ inputs.build_task }}
+
+      - name: Upload debug APK
+        id: upload
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: "test-build-debug"
+          path: "app/build/outputs/apk/**/*.apk"
+
+  comment:
+    needs: build
+    runs-on: ubuntu-latest
+    if: >
+      github.event.pull_request.user.login == 'fossifybot[bot]' &&
+      github.event.pull_request.head.ref == 'fossifybot/release'
+    steps:
+      - id: app-token
+        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Find existing test build comment
+        if: github.event_name == 'pull_request'
+        id: find_comment
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "fossifybot[bot]"
+          body-includes: "<!-- fossify-test-build-comment -->"
+
+      - name: Comment with test build link
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            <!-- fossify-test-build-comment -->
+            Test build is ready for commit `${{ github.event.pull_request.head.sha }}` :tada:
+
+             - **Download link**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+
+            > [!TIP]
+            >  - It's a zip file, so you'll need to extract it.
+            >  - You must be logged in to GitHub for the link to work.
+          edit-mode: replace
