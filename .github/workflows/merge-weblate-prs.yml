@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: "Merge Weblate PR in a specific repo or all"
+        description: "Merge PR in a specific repo or all"
         required: true
         default: "all"
         type: choice
