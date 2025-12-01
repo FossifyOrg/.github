@@ -28,7 +28,7 @@ on:
           - "FossifyOrg/Voice-Recorder"
       branch:
         description: "Branch name to merge"
-        required: false
+        required: true
         default: "fossifybot/release"
         type: string
       merge_method:
