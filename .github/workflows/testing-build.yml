@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: "test-build-debug"
-          path: "app/build/outputs/apk/**/*.apk"
+          path: "app/build/outputs/apk/foss/debug/*debug.apk"
 
       - name: Decode signing secrets
         if: >
