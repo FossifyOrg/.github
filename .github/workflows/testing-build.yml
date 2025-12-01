@@ -29,8 +29,18 @@ jobs:
       - name: Clean project
         run: ./gradlew clean
 
+      - name: Set nightly version
+        id: nightly
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          SHORT_SHA=${HEAD_SHA::7}
+          NIGHTLY_VERSION="${VERSION_NAME}-nightly-${SHORT_SHA}"
+          echo "nightly_version=$NIGHTLY_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build debug APK
-        run: ./gradlew ${{ inputs.build_task }}
+        run: ./gradlew -PVERSION_NAME="${{ steps.nightly.outputs.nightly_version }}" ${{ inputs.build_task }}
 
       - name: Upload debug APK
         id: upload
@@ -38,6 +48,32 @@ jobs:
         with:
           name: "test-build-debug"
           path: "app/build/outputs/apk/**/*.apk"
+
+      - name: Decode signing secrets
+        if: >
+          github.event.pull_request.user.login == 'fossifybot[bot]' &&
+          github.event.pull_request.head.ref == 'fossifybot/release'
+        uses: FossifyOrg/.github/.github/actions/decode-secrets@main
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+
+      - name: Build release APK (foss)
+        if: >
+          github.event.pull_request.user.login == 'fossifybot[bot]' &&
+          github.event.pull_request.head.ref == 'fossifybot/release'
+        run: ./gradlew -PVERSION_NAME="${{ steps.nightly.outputs.nightly_version }}" assembleFossRelease
+
+      - name: Upload release APK (foss)
+        if: >
+          github.event.pull_request.user.login == 'fossifybot[bot]' &&
+          github.event.pull_request.head.ref == 'fossifybot/release'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: "test-build-foss-release"
+          path: "app/build/outputs/apk/foss/release/*release.apk"
 
   comment:
     needs: build
@@ -53,7 +89,6 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Find existing test build comment
-        if: github.event_name == 'pull_request'
         id: find_comment
         uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad
         with:
@@ -63,7 +98,6 @@ jobs:
           body-includes: "<!-- fossify-test-build-comment -->"
 
       - name: Comment with test build link
-        if: github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
         with:
           token: ${{ steps.app-token.outputs.token }}
@@ -71,11 +105,12 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             <!-- fossify-test-build-comment -->
-            Test build is ready for commit `${{ github.event.pull_request.head.sha }}` :tada:
+            Test build is ready for commit ${{ github.event.pull_request.head.sha }} :tada:
 
              - **Download link**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
 
             > [!TIP]
             >  - It's a zip file, so you'll need to extract it.
             >  - You must be logged in to GitHub for the link to work.
+            >  - The foss release build is signed with the official key and **can be used to update** official store releases.
           edit-mode: replace
