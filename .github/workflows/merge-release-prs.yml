@@ -26,6 +26,11 @@ on:
           - "FossifyOrg/Phone"
           - "FossifyOrg/Thank-You"
           - "FossifyOrg/Voice-Recorder"
+      branch:
+        description: "Branch name to merge (head of release PR)"
+        required: false
+        default: "fossifybot/release"
+        type: string
 
 concurrency:
   group: "merge-release-prs"
@@ -65,7 +70,7 @@ jobs:
           )
 
           SELECTED_REPO="${{ github.event.inputs.repository }}"
-          BRANCH="fossifybot/release"
+          BRANCH="${{ github.event.inputs.branch }}"
 
           if [[ "$SELECTED_REPO" != "all" ]]; then
             REPOS=("$SELECTED_REPO")
