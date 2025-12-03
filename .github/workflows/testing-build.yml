@@ -3,11 +3,6 @@ name: Testing build (on PR)
 on:
   workflow_call:
     inputs:
-      build_task:
-        description: 'Gradle task to run to build APK. "assembleFossDebug" by default'
-        type: string
-        default: "assembleFossDebug"
-        required: false
       expected_label:
         description: 'Label to look for to run the build. "testers needed" by default'
         type: string
@@ -18,6 +13,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, inputs.expected_label)
+    outputs:
+      debug_artifact_url: ${{ steps.upload-debug.outputs.artifact-url }}
+      release_artifact_url: ${{ steps.upload-release.outputs.artifact-url }}
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
@@ -40,10 +38,10 @@ jobs:
           echo "nightly_version=$NIGHTLY_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build debug APK
-        run: ./gradlew -PVERSION_NAME="${{ steps.nightly.outputs.nightly_version }}" ${{ inputs.build_task }}
+        run: ./gradlew -PVERSION_NAME="${{ steps.nightly.outputs.nightly_version }}" assembleFossDebug
 
       - name: Upload debug APK
-        id: upload
+        id: upload-debug
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: "test-build-foss-debug"
@@ -77,6 +75,7 @@ jobs:
         if: >
           github.event.pull_request.user.login == 'fossifybot[bot]' &&
           github.event.pull_request.head.ref == 'fossifybot/release'
+        id: upload-release
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: "test-build-foss-release"
@@ -112,12 +111,12 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             <!-- fossify-test-build-comment -->
-            Test build is ready for commit ${{ github.event.pull_request.head.sha }} :tada:
+            Test builds are ready for commit ${{ github.event.pull_request.head.sha }} :tada:
 
-             - **Download link**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+            - **Debug APK**: [test-build-foss-debug.zip](${{ needs.build.outputs.debug_artifact_url }})
+            - **Release APK**: [test-build-foss-release.zip](${{ needs.build.outputs.release_artifact_url }})
 
             > [!TIP]
-            >  - It's a zip file, so you'll need to extract it.
-            >  - You must be logged in to GitHub for the link to work.
-            >  - The foss release build is signed with the official key and **can be used to update** official store releases.
+            >  - You must be logged in to GitHub for the links to work.
+            >  - The release build is signed with the official key and **can be used to update** official store releases.
           edit-mode: replace
