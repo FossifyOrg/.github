@@ -66,6 +66,13 @@ jobs:
           github.event.pull_request.head.ref == 'fossifybot/release'
         run: ./gradlew -PVERSION_NAME="${{ steps.nightly.outputs.nightly_version }}" assembleFossRelease
 
+      - name: Clean up secrets
+        if: >
+          always() &&
+          github.event.pull_request.user.login == 'fossifybot[bot]' &&
+          github.event.pull_request.head.ref == 'fossifybot/release'
+        uses: FossifyOrg/.github/.github/actions/cleanup-secrets@main
+
       - name: Upload release APK (foss)
         if: >
           github.event.pull_request.user.login == 'fossifybot[bot]' &&
