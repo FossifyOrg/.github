@@ -3,36 +3,11 @@ name: Fossify release dispatcher
 on:
   schedule:
     - cron: "0 5 * * *"
-  workflow_dispatch:
-    inputs:
-      repository:
-        description: "Trigger a specific repo or all"
-        required: true
-        default: "all"
-        type: choice
-        options:
-          - "all"
-          - "FossifyOrg/Calculator"
-          - "FossifyOrg/Calendar"
-          - "FossifyOrg/Camera"
-          - "FossifyOrg/Clock"
-          - "FossifyOrg/Contacts"
-          - "FossifyOrg/File-Manager"
-          - "FossifyOrg/Gallery"
-          - "FossifyOrg/Keyboard"
-          - "FossifyOrg/Launcher"
-          - "FossifyOrg/Messages"
-          - "FossifyOrg/Music-Player"
-          - "FossifyOrg/Notes"
-          - "FossifyOrg/Paint"
-          - "FossifyOrg/Phone"
-          - "FossifyOrg/Thank-You"
-          - "FossifyOrg/Voice-Recorder"
 
 jobs:
   dispatch:
     uses: FossifyOrg/.github/.github/workflows/fossify-event-dispatcher.yml@main
     with:
       task: prepare-release
-      repository: ${{ github.event.inputs.repository || 'all' }}
+      repository: "all"
     secrets: inherit
