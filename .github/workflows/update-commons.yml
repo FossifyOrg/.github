@@ -81,7 +81,5 @@ jobs:
           title: "chore(deps): bump org.fossify.commons from ${{ steps.current-commons.outputs.version }} to ${{ steps.latest-commons.outputs.version }}"
           body: |
             Bumps [org.fossify.commons](https://github.com/FossifyOrg/Commons) from `${{ steps.current-commons.outputs.version }}` to `${{ steps.latest-commons.outputs.version }}`.
-
-            This PR was created automatically.
           add-paths: |
             gradle/libs.versions.toml
