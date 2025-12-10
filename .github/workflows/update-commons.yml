@@ -1,0 +1,87 @@
+name: Update Commons
+
+on:
+  workflow_call:
+
+concurrency:
+  group: update-commons-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  update-commons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+
+      - name: Get latest Commons tag
+        id: latest-commons
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST_TAG=$(gh api repos/FossifyOrg/Commons/tags --jq '.[0].name')
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found in FossifyOrg/Commons"
+            exit 1
+          fi
+
+          LATEST_VERSION="${LATEST_TAG#v}"
+
+          echo "Latest tag: $LATEST_TAG"
+          echo "version=$LATEST_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Get current Commons version
+        id: current-commons
+        run: |
+          CURRENT_VERSION=$(
+            grep -E '^[[:space:]]*commons[[:space:]]*=' gradle/libs.versions.toml \
+            | sed -E 's/^[[:space:]]*commons[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/'
+          )
+          echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current Commons version: $CURRENT_VERSION"
+
+      - name: Check if update is needed
+        id: check-update
+        run: |
+          if [[ "${{ steps.current-commons.outputs.version }}" == "${{ steps.latest-commons.outputs.version }}" ]]; then
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "Already up to date (${{ steps.latest-commons.outputs.version }}). Skipping."
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "Update needed: ${{ steps.current-commons.outputs.version }} -> ${{ steps.latest-commons.outputs.version }}"
+          fi
+
+      - name: Update Commons version
+        if: ${{ steps.check-update.outputs.needs_update == 'true' }}
+        run: |
+          latest='${{ steps.latest-commons.outputs.version }}'
+          sed -i -E "s/^([[:space:]]*commons[[:space:]]*=[[:space:]]*\")[^\"]+(\")/\1${latest}\2/" gradle/libs.versions.toml
+
+      - name: Get app token
+        if: ${{ steps.check-update.outputs.needs_update == 'true' }}
+        id: app-token
+        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Create or update PR
+        if: ${{ steps.check-update.outputs.needs_update == 'true' }}
+        uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          sign-commits: true
+          branch: fossifybot/commons
+          commit-message: "chore(deps): bump org.fossify.commons from ${{ steps.current-commons.outputs.version }} to ${{ steps.latest-commons.outputs.version }}"
+          title: "chore(deps): bump org.fossify.commons from ${{ steps.current-commons.outputs.version }} to ${{ steps.latest-commons.outputs.version }}"
+          body: |
+            Bumps [org.fossify.commons](https://github.com/FossifyOrg/Commons) from `${{ steps.current-commons.outputs.version }}` to `${{ steps.latest-commons.outputs.version }}`.
+
+            This PR was created automatically.
+          add-paths: |
+            gradle/libs.versions.toml
