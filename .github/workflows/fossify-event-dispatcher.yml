@@ -1,10 +1,17 @@
-name: Fossify release dispatcher
+name: Fossify event dispatcher
 
 on:
-  schedule:
-    - cron: "0 5 * * *"
   workflow_dispatch:
     inputs:
+      task:
+        description: "What to run"
+        required: true
+        default: "prepare-release"
+        type: choice
+        options:
+          - "prepare-release"
+          - "update-lint-baselines"
+          - "update-commons"
       repository:
         description: "Trigger a specific repo or all"
         required: true
@@ -29,16 +36,24 @@ on:
           - "FossifyOrg/Thank-You"
           - "FossifyOrg/Voice-Recorder"
 
+  workflow_call:
+    inputs:
+      task:
+        required: true
+        type: string
+      repository:
+        required: true
+        type: string
+
 concurrency:
-  group: "prepare-release-dispatcher-${{ github.event.inputs.repository || 'all' }}"
+  group: "manual-dispatcher-${{ inputs.task || github.event.inputs.task }}-${{ inputs.repository || github.event.inputs.repository }}"
   cancel-in-progress: true
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
         with:
           egress-policy: audit
 
@@ -72,32 +87,27 @@ jobs:
               'FossifyOrg/Voice-Recorder',
             ];
 
-            const selectedRepo = '${{ github.event.inputs.repository }}';
-            const manualDispatch = '${{ github.event_name }}' === 'workflow_dispatch';
-            let reposToProcess = [];
+            const selectedRepo = '${{ inputs.repository || github.event.inputs.repository }}';
+            const task = '${{ inputs.task || github.event.inputs.task }}';
 
-            if (manualDispatch && selectedRepo) {
-              if (selectedRepo === 'all') {
-                reposToProcess = repos;
-                console.log(`Manual dispatch for all repositories (${repos.length} repos):`, reposToProcess);
-              } else {
-                reposToProcess = [selectedRepo];
-                console.log(`Manual dispatch for: ${selectedRepo}`);
-              }
-            } else {
+            let reposToProcess = [];
+            if (selectedRepo === 'all') {
               reposToProcess = repos;
-              console.log(`Scheduled dispatch to all repositories (${repos.length} repos):`, reposToProcess);
+              console.log(`Manual ${task} for all repositories (${repos.length} repos):`, reposToProcess);
+            } else {
+              reposToProcess = [selectedRepo];
+              console.log(`Manual ${task} for: ${selectedRepo}`);
             }
 
             for (const repoPath of reposToProcess) {
-              console.log(`Dispatching to ${repoPath}`);
+              console.log(`Dispatching "${task}" to ${repoPath}`);
               const [owner, repo] = repoPath.split('/');
 
               try {
                 await github.rest.repos.createDispatchEvent({
                   owner,
                   repo,
-                  event_type: 'prepare-release'
+                  event_type: task,
                 });
               } catch (e) {
                 console.warn(`${repoPath} failed: ${e.message}`);

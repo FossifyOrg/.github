@@ -1,0 +1,13 @@
+name: Fossify release dispatcher
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+
+jobs:
+  dispatch:
+    uses: FossifyOrg/.github/.github/workflows/fossify-event-dispatcher.yml@main
+    with:
+      task: prepare-release
+      repository: "all"
+    secrets: inherit
