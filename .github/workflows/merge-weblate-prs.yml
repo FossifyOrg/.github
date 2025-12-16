@@ -26,6 +26,7 @@ on:
           - "FossifyOrg/Phone"
           - "FossifyOrg/Thank-You"
           - "FossifyOrg/Voice-Recorder"
+          - "FossifyOrg/commons"
 
 concurrency:
   group: "merge-weblate-prs"
@@ -62,6 +63,7 @@ jobs:
             ["FossifyOrg/Phone"]="weblate-fossify-dialer"
             ["FossifyOrg/Thank-You"]="weblate-fossify-thank-you"
             ["FossifyOrg/Voice-Recorder"]="weblate-fossify-voice-recorder"
+            ["FossifyOrg/commons"]="weblate-fossify-commons"
           )
 
           REPOS=(
@@ -81,6 +83,7 @@ jobs:
             "FossifyOrg/Phone"
             "FossifyOrg/Thank-You"
             "FossifyOrg/Voice-Recorder"
+            "FossifyOrg/commons"
           )
 
           SELECTED_REPO="${{ github.event.inputs.repository }}"
