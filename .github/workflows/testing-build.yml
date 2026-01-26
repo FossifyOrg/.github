@@ -17,7 +17,7 @@ jobs:
       debug_artifact_url: ${{ steps.upload-debug.outputs.artifact-url }}
       release_artifact_url: ${{ steps.upload-release.outputs.artifact-url }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e
         with:
           java-version: 17
