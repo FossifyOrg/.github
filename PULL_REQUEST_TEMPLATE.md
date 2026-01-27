@@ -20,6 +20,8 @@
 
 #### Closes the following issue(s)
 <!-- Prefix issues with "Closes" so that GitHub closes them when the PR is merged (note that each "Closes #" should be in its own item). -->
+<!-- Fossify has an **issue first** policy. Please only work on **accepted** features and bug reports. -->
+
 - Closes #
 
 #### Checklist
