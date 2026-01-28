@@ -29,6 +29,6 @@
 - [ ] I manually tested my changes on device/emulator (if applicable).
 - [ ] I updated the "Unreleased" section in `CHANGELOG.md` (if applicable).
 - [ ] I have self-reviewed my pull request (no typos, formatting errors, etc.).
-- [ ] All checks are passing.
+- [ ] I understand every change in this pull request.
 
 <!-- NOTE: Keep CHANGELOG.md updates clear and concise, they are visible to *all* users. -->
