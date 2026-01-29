@@ -10,6 +10,4 @@ runs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/settings.gradle*', '**/gradle.properties', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
