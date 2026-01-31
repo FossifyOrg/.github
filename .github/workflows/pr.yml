@@ -24,14 +24,38 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    changes:
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
+        outputs:
+            run_ci: ${{ steps.filter.outputs.all_count != steps.filter.outputs.ignored_count }}
+        steps:
+            - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+              id: filter
+              with:
+                  filters: |
+                      all:
+                        - '**'
+                      ignored:
+                        - '.github/**'
+                        - 'docs/**'
+                        - 'fastlane/**'
+                        - 'CHANGELOG.md'
+                        - 'LICENSE'
+                        - 'README.md'
+
     wrapper-validation:
+        needs: changes
+        if: needs.changes.outputs.run_ci == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
             - uses: gradle/actions/wrapper-validation@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
 
     test:
-        needs: wrapper-validation
+        needs: [changes, wrapper-validation]
+        if: needs.changes.outputs.run_ci == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -44,9 +68,9 @@ jobs:
               run: ./gradlew ${{ inputs.test_task }}
 
     detekt:
-        needs: wrapper-validation
+        needs: [changes, wrapper-validation]
+        if: needs.changes.outputs.run_ci == 'true' && inputs.run_detekt
         runs-on: ubuntu-latest
-        if: ${{ inputs.run_detekt }}
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
             - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
@@ -58,9 +82,9 @@ jobs:
               run: ./gradlew detekt
 
     lint:
-        needs: wrapper-validation
+        needs: [changes, wrapper-validation]
+        if: needs.changes.outputs.run_ci == 'true' && inputs.run_lint
         runs-on: ubuntu-latest
-        if: ${{ inputs.run_lint }}
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
             - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
@@ -86,3 +110,33 @@ jobs:
               with:
                   name: "lint-results"
                   path: "app/build/intermediates/lint_intermediate_text_report/fossDebug/lint-results-fossDebug.txt"
+
+    ci-gate:
+        if: always()
+        runs-on: ubuntu-latest
+        needs: [changes, wrapper-validation, test, detekt, lint]
+        steps:
+            - name: Enforce required checks
+              run: |
+                  set -euo pipefail
+
+                  echo "run_ci: ${{ needs.changes.outputs.run_ci }}"
+                  echo "wrapper-validation: ${{ needs.wrapper-validation.result }}"
+                  echo "test: ${{ needs.test.result }}"
+                  echo "detekt: ${{ needs.detekt.result }} (input run_detekt=${{ inputs.run_detekt }})"
+                  echo "lint: ${{ needs.lint.result }} (input run_lint=${{ inputs.run_lint }})"
+
+                  if [[ "${{ needs.changes.outputs.run_ci }}" != "true" ]]; then
+                      exit 0
+                  fi
+
+                  [[ "${{ needs.wrapper-validation.result }}" == "success" ]] || exit 1
+                  [[ "${{ needs.test.result }}" == "success" ]] || exit 1
+
+                  if [[ "${{ inputs.run_detekt }}" == "true" ]]; then
+                      [[ "${{ needs.detekt.result }}" == "success" ]] || exit 1
+                  fi
+
+                  if [[ "${{ inputs.run_lint }}" == "true" ]]; then
+                      [[ "${{ needs.lint.result }}" == "success" ]] || exit 1
+                  fi
