@@ -9,6 +9,7 @@ module.exports = async ({ github, context }) => {
     const IMG_MAX_HEIGHT_PX = 400;
     // maximum width of GitHub issues/comments
     const IMG_MAX_WIDTH_PX = 800;
+    const IMG_TARGET_MAX_WIDTH_PX = 400; 
     // all images that have a lower aspect ratio (-> have a smaller width) than this will be minimized
     const MIN_ASPECT_RATIO = IMG_MAX_WIDTH_PX / IMG_MAX_HEIGHT_PX
 
@@ -150,7 +151,7 @@ module.exports = async ({ github, context }) => {
         if (shouldModify) {
             wasMatchModified = true;
             console.log(`Modifying match '${match}'`);
-            return `<img alt="ignoreImageMinify" src="${g2}" width=${Math.min(600, Math.floor(IMG_MAX_HEIGHT_PX * probeAspectRatio))} />`;
+            return `<img alt="ignoreImageMinify" src="${g2}" width=${Math.min(IMG_TARGET_MAX_WIDTH_PX, Math.floor(IMG_MAX_HEIGHT_PX * probeAspectRatio))} />`;
         }
 
         console.log(`Match '${match}' is ok/will not be modified`);
