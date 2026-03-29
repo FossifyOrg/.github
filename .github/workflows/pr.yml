@@ -99,13 +99,13 @@ jobs:
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               run: ./gradlew updateLintBaseline
             - name: Upload new baseline
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               with:
                   name: "new-lint-baseline"
                   path: "app/lint-baseline.xml"
             - name: Upload results
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
               if: ${{ !cancelled() }}
               with:
                   name: "lint-results"
