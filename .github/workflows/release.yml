@@ -74,7 +74,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
 
       - name: Set up Ruby & Bundler
-        uses: ruby/setup-ruby@6ca151fd1bfcfd6fe0c4eb6837eb0584d0134a0c
+        uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64
         with:
           ruby-version: "3.3"
           bundler-cache: true
