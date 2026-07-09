@@ -50,6 +50,7 @@ jobs:
   release_gplay:
     name: Google Play
     needs: prepare
+    if: vars.RELEASE_TARGET != 'github'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -120,6 +121,7 @@ jobs:
   release_foss:
     name: GitHub
     needs: prepare
+    if: vars.RELEASE_TARGET != 'gplay'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -190,13 +192,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b
         with:
+          token: ${{ steps.app-token.outputs.token }}
           tag_name: ${{ needs.prepare.outputs.version_name }}
           name: ${{ needs.prepare.outputs.version_name }}
           body: ${{ steps.extract_changelog.outputs.changelog }}
           draft: false
           files: app/build/outputs/apk/foss/release/*release.apk
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Clean up secrets
         if: always()
