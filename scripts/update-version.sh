@@ -44,7 +44,12 @@ if [[ -z "$previous_version" ]]; then
     exit 1
 fi
 
-if [[ "$previous_version" == "$NEW_VERSION" ]]; then
+has_release_tags=false
+if [[ -n "$(git tag --list)" ]]; then
+    has_release_tags=true
+fi
+
+if [[ "$previous_version" == "$NEW_VERSION" && "$has_release_tags" == "true" ]]; then
     echo "Error: New version $NEW_VERSION is the same as the current version $previous_version"
     exit 1
 fi
@@ -61,8 +66,7 @@ sed -i "s/## \\[Unreleased\\]/## [Unreleased]\\n\\n## [$NEW_VERSION] - $today/" 
 # update [Unreleased] link to compare from new version to HEAD
 sed -i "s|\\[Unreleased\\]:.*|[Unreleased]: https://github.com/$GITHUB_REPOSITORY/compare/$NEW_VERSION...HEAD|" CHANGELOG.md
 
-if [[ "$NEW_VERSION" == "1.0.0" ]]; then
-    # first major release so we link to the release tag
+if [[ "$has_release_tags" == "false" ]]; then
     sed -i "/\\[Unreleased\\]:/a\\[$NEW_VERSION\\]: https://github.com/$GITHUB_REPOSITORY/releases/tag/$NEW_VERSION" CHANGELOG.md
 else
     # add new version as a compare link

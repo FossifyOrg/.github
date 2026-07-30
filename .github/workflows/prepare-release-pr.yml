@@ -36,8 +36,18 @@ jobs:
           nextVersionCode=$((currentVersionCode+1))
           echo "nextVersionCode=$nextVersionCode" >> $GITHUB_OUTPUT
 
-      - name: Get next version name
-        id: version-name
+      - name: Check release history
+        id: release-history
+        run: |
+          if [[ -n "$(git tag --list)" ]]; then
+            echo "hasTags=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hasTags=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Calculate next version name
+        if: steps.release-history.outputs.hasTags == 'true'
+        id: semantic-version
         uses: ietf-tools/semver-action@c90370b2958652d71c06a3484129a4d423a6d8a8
         with:
           token: ${{ github.token }}
@@ -45,6 +55,25 @@ jobs:
           noNewCommitBehavior: "warn"
           noVersionBumpBehavior: "warn"
           patchList: fix, bugfix, perf, refactor, test, tests, chore
+
+      - name: Get next version name
+        id: version-name
+        env:
+          HAS_TAGS: ${{ steps.release-history.outputs.hasTags }}
+          SEMANTIC_VERSION: ${{ steps.semantic-version.outputs.nextStrict }}
+        run: |
+          if [[ "$HAS_TAGS" == "true" ]]; then
+            nextVersion="$SEMANTIC_VERSION"
+          else
+            nextVersion=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          fi
+
+          if [[ -z "$nextVersion" ]]; then
+            echo "::error::Unable to determine the next release version"
+            exit 1
+          fi
+
+          echo "nextStrict=$nextVersion" >> "$GITHUB_OUTPUT"
 
       - name: Check if release branch needs update
         if: ${{ steps.version-name.outputs.nextStrict }}
