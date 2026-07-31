@@ -24,6 +24,7 @@ on:
           - "FossifyOrg/Camera"
           - "FossifyOrg/Clock"
           - "FossifyOrg/Contacts"
+          - "FossifyOrg/Documents"
           - "FossifyOrg/File-Manager"
           - "FossifyOrg/Gallery"
           - "FossifyOrg/Keyboard"
@@ -74,6 +75,7 @@ jobs:
               'FossifyOrg/Camera',
               'FossifyOrg/Clock',
               'FossifyOrg/Contacts',
+              'FossifyOrg/Documents',
               'FossifyOrg/File-Manager',
               'FossifyOrg/Gallery',
               'FossifyOrg/Keyboard',
