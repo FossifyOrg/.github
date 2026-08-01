@@ -4,10 +4,10 @@ const ENFORCEMENT_START = Date.parse('2026-07-30T22:12:21Z');
 const ISSUE_MESSAGES = {
     request_missing_details: 'This issue is missing information needed to understand or investigate it. Please edit the issue body to add those details.',
     request_incomplete_checklist: 'One or more required checklist items are unchecked. Please edit the issue body to complete the checklist.',
-    close_missing_template: 'Please use the appropriate issue form and keep its required sections intact. If your GitHub client does not support issue forms, please submit the issue in a browser.',
-    close_multiple_requests: 'This issue contains multiple bugs or feature requests that should be tracked independently. Please create a separate issue for each one.',
-    close_wrong_repository: 'Please report single-app issues in that app\'s repository and issues affecting multiple apps in General Discussion.',
-    close_not_english: 'Please write issue reports in English so that maintainers and contributors can understand them.',
+    close_missing_template: 'Please open a new issue using the appropriate issue form and keep its required sections intact. If your GitHub client does not support issue forms, please use a web browser.',
+    close_multiple_requests: 'This issue contains multiple bugs or feature requests that should be tracked separately. Please create a separate issue for each one.',
+    close_wrong_repository: 'Please report single-app issues in that app\'s repository. Issues affecting multiple apps belong in [General Discussion](https://github.com/FossifyOrg/General-Discussion).',
+    close_not_english: 'Please write issue reports in English so maintainers and contributors can understand them.',
     resolved: 'Thank you for updating the issue.'
 };
 
