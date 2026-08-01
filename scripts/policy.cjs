@@ -164,6 +164,10 @@ async function moderatePullRequest({github, context, core}) {
         core.info(`Pull request has ${pullRequest.changed_files} changed files, but only ${files.length} were returned; no action taken.`);
         return;
     }
+    if (files.some(file => !file.patch)) {
+        core.info('Pull request has a changed file without patch content; no action taken.');
+        return;
+    }
 
     const decision = await classify({
         core,
