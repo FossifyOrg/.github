@@ -8,6 +8,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  policy:
+    if: ${{ github.event_name == 'issues' || github.event_name == 'pull_request_target' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout .github repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          repository: FossifyOrg/.github
+          path: .github-repo
+
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Enforce contribution policy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-5.4
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const policy = require('./.github-repo/scripts/policy.cjs');
+            await policy({github, context, core});
+
   minimize:
     if: ${{ github.actor != 'fossifybot[bot]' }}
     runs-on: ubuntu-latest
