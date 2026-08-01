@@ -2,6 +2,12 @@ name: Image Minimizer
 
 on:
   workflow_call:
+  issue_comment:
+    types: [created, edited]
+  issues:
+    types: [opened, edited]
+  pull_request_target:
+    types: [opened, edited]
 
 concurrency:
   group: image-minimizer-${{ github.event_name }}-${{ github.event.comment.id || github.event.issue.number || github.event.pull_request.number }}
