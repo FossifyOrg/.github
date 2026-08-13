@@ -28,7 +28,7 @@ Select one result:
 - close_wrong_repository: a single-app issue was filed in General-Discussion, or an issue affecting several apps was filed in one app's repository.
 - close_missing_template: an applicable form is supplied and the issue clearly does not follow it or a required section was removed. Do not select this if no applicable form is supplied.
 - close_not_english: the report is not intelligible in English. Ignore logs, identifiers, and short quoted text.
-- request_missing_details: it retains the appropriate form and contains one request, but its answers lack essential information. A bug needs enough environment, reproduction context, expected behavior, and actual behavior to investigate. A feature needs a clear desired change and motivation.
+- request_missing_details: it retains the appropriate form and contains one request, but its required answers lack information necessary to understand what is being reported. A bug report is sufficient for human review when it identifies the affected area and makes the expected-versus-actual difference intelligible. Steps may be terse or implicit; do not require exhaustive reproduction steps or diagnostic information when the problem is otherwise clear. A feature needs a clear desired change and motivation.
 - request_incomplete_checklist: it otherwise follows the appropriate form, but one or more required checklist items are unchecked.
 - leave_for_human_review: the issue appears reasonably correct, or the correct classification is genuinely ambiguous, and it should be left open for human review.
 
