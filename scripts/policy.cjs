@@ -1,5 +1,6 @@
 const COMMENT_MARKER = '<!-- fossify-policy -->';
 const ENFORCEMENT_START = Date.parse('2026-07-30T22:12:21Z');
+const MAX_ISSUE_FIELDS = 8;
 
 const ISSUE_MESSAGES = {
     request_missing_details: 'This issue is missing information needed to understand or investigate it. Please edit the issue body to add those details.',
@@ -9,6 +10,17 @@ const ISSUE_MESSAGES = {
     close_wrong_repository: 'Please report single-app issues in that app\'s repository. Issues affecting multiple apps belong in [General Discussion](https://github.com/FossifyOrg/General-Discussion/issues).',
     close_not_english: 'Please write issue reports in English so maintainers and contributors can understand them.',
     resolved: 'Thank you for updating the issue.'
+};
+
+const ISSUE_FIELD_GUIDANCE = {
+    'actual-behavior': ['Actual behavior', 'Describe what happened after following the steps, including any error or unexpected result.'],
+    'app-version': ['Affected app version', 'Provide the app version shown in the app\'s About screen.'],
+    'device-model-info': ['Affected device model', 'Provide the device manufacturer and model.'],
+    'device-os-info': ['Affected Android or custom ROM version', 'Provide the Android or custom ROM name and version.'],
+    'expected-behavior': ['Expected behavior', 'Describe what should happen and when.'],
+    'feature-description': ['Feature description', 'Describe the requested change clearly, including how the app should behave.'],
+    'steps-to-reproduce': ['Steps to reproduce', 'Describe step-by-step how to reproduce or observe the problem.'],
+    'why-is-the-feature-requested': ['Reason for the feature', 'Explain the problem or limitation this change would solve.']
 };
 
 const ISSUE_RESULTS = [
@@ -33,6 +45,8 @@ Select one result:
 - leave_for_human_review: the issue appears reasonably correct, or the correct classification is genuinely ambiguous, and it should be left open for human review.
 
 Use the issue's labels and subject to determine which form applies. Some labels may remain from an earlier policy decision. Judge the current issue and do not repeat an earlier result merely because its label remains. Several symptoms of one bug are one report. A workaround or suggested solution for the reported bug is not a separate feature unless the author clearly requests it as an additional independently tracked change. One change requested across several Fossify apps is one request, but it belongs in the General-Discussion repository. Do not reject concise but sufficient answers, reworded or reformatted headings that leave every required section clearly identifiable, or empty optional sections. Required headings and sections must not be removed. Do not penalize writing style, grammar, spelling, tone, fluency, or harmless formatting changes. Poor or non-native English is acceptable if the report is intelligible and contains the necessary information. Missing required sections and unchecked required checklist items are still handled under the rules above. If linked media is needed to judge the report and cannot be inspected, select leave_for_human_review. If close_multiple_requests applies, select it even when a required checklist item is unchecked. Return a concise reason for the result. Use common sense.`;
+
+const ISSUE_FIELD_POLICY = `For request_missing_details, return up to eight fields using exact id values copied from the applicable supplied issue form and limited to the allowed required field IDs in the response schema. Use state missing when the field remains in the issue but has no substantive answer, and incomplete when an answer exists but lacks essential facts. A removed required section is close_missing_template, not a missing field. Do not include optional fields or checklist; unchecked required checklist items use request_incomplete_checklist. For every other result, return an empty fields array.`;
 
 const PR_RESULTS = ['allow_translation', 'allow_trivial', 'allow_critical', 'close', 'human_review'];
 
@@ -62,10 +76,11 @@ async function moderateIssue({github, context, core}) {
     if (!issue || issue.state !== 'open' || Date.parse(issue.created_at) < ENFORCEMENT_START) return;
 
     const issueForms = await getIssueForms(github, context);
+    const issueFieldIds = requiredIssueFieldIds(issueForms);
     const decision = await classify({
         core,
         name: 'issue_policy',
-        policy: ISSUE_POLICY,
+        policy: issueFieldIds.length > 0 ? `${ISSUE_POLICY}\n\n${ISSUE_FIELD_POLICY}` : ISSUE_POLICY,
         input: {
             repository: context.repo,
             title: issue.title,
@@ -73,11 +88,12 @@ async function moderateIssue({github, context, core}) {
             labels: issue.labels.map(label => label.name),
             issue_forms: issueForms
         },
-        results: ISSUE_RESULTS
+        results: ISSUE_RESULTS,
+        issueFieldIds
     });
 
     if (!decision) return;
-    const {result, reason} = decision;
+    const {result, reason, fields = []} = decision;
     core.info(`Issue policy result: ${result}`);
     core.info(`Issue policy reason: ${oneLine(reason)}`);
 
@@ -96,28 +112,31 @@ async function moderateIssue({github, context, core}) {
 
         const policyComment = await findPolicyComment(github, context, issue.number);
         const oldLabels = [];
-        if (labels.has('waiting for author') && hasPolicyMessage(policyComment, [
-            ISSUE_MESSAGES.request_missing_details,
-            ISSUE_MESSAGES.request_incomplete_checklist
-        ])) {
+        if (labels.has('waiting for author') && hasPolicyResult(policyComment, [
+            'request_missing_details',
+            'request_incomplete_checklist'
+        ], [ISSUE_MESSAGES.request_missing_details, ISSUE_MESSAGES.request_incomplete_checklist])) {
             oldLabels.push('waiting for author');
         }
-        if (labels.has('template ignored') && hasPolicyMessage(policyComment, [
-            ISSUE_MESSAGES.close_missing_template,
-            ISSUE_MESSAGES.close_multiple_requests
-        ])) {
+        if (labels.has('template ignored') && hasPolicyResult(policyComment, [
+            'close_missing_template',
+            'close_multiple_requests'
+        ], [ISSUE_MESSAGES.close_missing_template, ISSUE_MESSAGES.close_multiple_requests])) {
             oldLabels.push('template ignored');
         }
         for (const label of oldLabels) {
             await github.rest.issues.removeLabel({...context.repo, issue_number: issue.number, name: label});
         }
         if (oldLabels.length > 0) {
-            await upsertComment(github, context, issue.number, ISSUE_MESSAGES.resolved, policyComment);
+            await upsertComment(github, context, issue.number, ISSUE_MESSAGES.resolved, policyComment, 'resolved');
         }
         return;
     }
 
-    await upsertComment(github, context, issue.number, ISSUE_MESSAGES[result]);
+    const message = result === 'request_missing_details'
+        ? missingDetailsMessage(fields, issueFieldIds)
+        : ISSUE_MESSAGES[result];
+    await upsertComment(github, context, issue.number, message, undefined, result);
 
     if (['request_missing_details', 'request_incomplete_checklist'].includes(result)) {
         if (!labels.has('waiting for author')) {
@@ -270,11 +289,33 @@ function oneLine(text) {
     return text.replace(/\s+/g, ' ').trim();
 }
 
-async function classify({core, name, policy, input, results}) {
+async function classify({core, name, policy, input, results, issueFieldIds = []}) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
         core.warning('OPENAI_API_KEY is not configured; policy check skipped.');
         return null;
+    }
+
+    const properties = {
+        result: {type: 'string', enum: results},
+        reason: {type: 'string'}
+    };
+    const required = ['result', 'reason'];
+    if (issueFieldIds.length > 0) {
+        properties.fields = {
+            type: 'array',
+            maxItems: MAX_ISSUE_FIELDS,
+            items: {
+                type: 'object',
+                properties: {
+                    id: {type: 'string', enum: issueFieldIds},
+                    state: {type: 'string', enum: ['missing', 'incomplete']}
+                },
+                required: ['id', 'state'],
+                additionalProperties: false
+            }
+        };
+        required.push('fields');
     }
 
     const request = {
@@ -290,11 +331,8 @@ async function classify({core, name, policy, input, results}) {
                 strict: true,
                 schema: {
                     type: 'object',
-                    properties: {
-                        result: {type: 'string', enum: results},
-                        reason: {type: 'string'}
-                    },
-                    required: ['result', 'reason'],
+                    properties,
+                    required,
                     additionalProperties: false
                 }
             }
@@ -323,7 +361,57 @@ async function classify({core, name, policy, input, results}) {
     if (!results.includes(decision.result)) {
         throw new Error(`OpenAI returned an unknown classification: ${decision.result}`);
     }
+    if (issueFieldIds.length > 0) {
+        const allowedIssueFieldIds = new Set(issueFieldIds);
+        if (!Array.isArray(decision.fields)) {
+            throw new Error('OpenAI returned an invalid issue fields value.');
+        }
+        if (decision.fields.length > MAX_ISSUE_FIELDS || decision.fields.some(field =>
+            !field
+            || !allowedIssueFieldIds.has(field.id)
+            || !['missing', 'incomplete'].includes(field.state)
+        )) {
+            throw new Error('OpenAI returned invalid issue field details.');
+        }
+        if (decision.result !== 'request_missing_details' && decision.fields.length > 0) {
+            throw new Error(`OpenAI returned issue fields for ${decision.result}.`);
+        }
+    }
     return decision;
+}
+
+function missingDetailsMessage(fields, issueFieldIds) {
+    const validIds = new Set(issueFieldIds);
+    const seen = new Set();
+    const guidance = [];
+
+    for (const field of fields) {
+        if (guidance.length >= MAX_ISSUE_FIELDS || seen.has(field.id)) continue;
+        const fieldGuidance = ISSUE_FIELD_GUIDANCE[field.id];
+        if (!validIds.has(field.id) || !fieldGuidance) continue;
+        if (!['missing', 'incomplete'].includes(field.state)) continue;
+
+        seen.add(field.id);
+        const [label, prompt] = fieldGuidance;
+        guidance.push(`- **${label}** (${field.state}): ${prompt}`);
+    }
+
+    if (guidance.length === 0) return ISSUE_MESSAGES.request_missing_details;
+    return `Thanks for the report. A few fields need more detail before we can investigate:\n\nMissing or incomplete fields:\n\n${guidance.join('\n')}`;
+}
+
+function requiredIssueFieldIds(issueForms) {
+    const ids = new Set();
+    for (const form of Object.values(issueForms)) {
+        if (typeof form !== 'string') continue;
+        for (const item of form.split(/(?=^[ \t]*-[ \t]+type:[ \t]+)/gm)) {
+            const id = item.match(/^[ \t]+id:[ \t]*([A-Za-z0-9_-]+)[ \t]*$/m)?.[1];
+            const validations = item.match(/^[ \t]+validations:[ \t]*\r?\n((?:[ \t]{6,}.*(?:\r?\n|$))*)/m)?.[1];
+            if (!id || !validations || !/^[ \t]+required:[ \t]*true[ \t]*$/m.test(validations)) continue;
+            if (Object.prototype.hasOwnProperty.call(ISSUE_FIELD_GUIDANCE, id)) ids.add(id);
+        }
+    }
+    return [...ids].sort();
 }
 
 async function findPolicyComment(github, context, issueNumber) {
@@ -337,12 +425,18 @@ async function findPolicyComment(github, context, issueNumber) {
     );
 }
 
-function hasPolicyMessage(comment, messages) {
-    return messages.some(message => comment?.body === `${COMMENT_MARKER}\n${message}`);
+function hasPolicyResult(comment, results, legacyMessages) {
+    const body = comment?.body || '';
+    return results.some(result => body.includes(issueResultMarker(result)))
+        || legacyMessages.some(message => body === `${COMMENT_MARKER}\n${message}`);
 }
 
-async function upsertComment(github, context, issueNumber, message, existing) {
-    const body = `${COMMENT_MARKER}\n${message}`;
+function issueResultMarker(result) {
+    return `<!-- fossify-policy-result:${result} -->`;
+}
+
+async function upsertComment(github, context, issueNumber, message, existing, result) {
+    const body = [COMMENT_MARKER, result && issueResultMarker(result), message].filter(Boolean).join('\n');
     existing ??= await findPolicyComment(github, context, issueNumber);
 
     if (existing) {
