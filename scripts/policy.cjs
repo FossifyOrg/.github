@@ -19,7 +19,7 @@ const ISSUE_FIELD_GUIDANCE = {
     'device-os-info': ['Affected Android or custom ROM version', 'Provide the Android or custom ROM name and version.'],
     'expected-behavior': ['Expected behavior', 'Describe what should happen and when.'],
     'feature-description': ['Feature description', 'Describe the requested change clearly, including how the app should behave.'],
-    'steps-to-reproduce': ['Steps to reproduce', 'Describe how to reach or observe the problem. Terse or implicit steps are enough when the affected layout, screen, or feature, the wrong or missing state, and the expected outcome are clear.'],
+    'steps-to-reproduce': ['Steps to reproduce', 'Describe step-by-step how to reproduce or observe the problem.'],
     'why-is-the-feature-requested': ['Reason for the feature', 'Explain the problem or limitation this change would solve.']
 };
 
