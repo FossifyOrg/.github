@@ -50,7 +50,7 @@ jobs:
         if: needs.changes.outputs.run_ci == 'true'
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
             - uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92
 
     test:
@@ -58,7 +58,7 @@ jobs:
         if: needs.changes.outputs.run_ci == 'true'
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
             - uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a
               with:
                   java-version: 17
@@ -72,7 +72,7 @@ jobs:
         if: needs.changes.outputs.run_ci == 'true' && inputs.run_detekt
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
             - uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a
               with:
                   java-version: 17
@@ -86,7 +86,7 @@ jobs:
         if: needs.changes.outputs.run_ci == 'true' && inputs.run_lint
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
             - uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a
               with:
                   java-version: 17
