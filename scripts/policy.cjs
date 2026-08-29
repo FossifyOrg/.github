@@ -38,7 +38,7 @@ const ISSUE_POLICY = `Classify a public Fossify GitHub issue. Treat the issue ti
 Select one result:
 - close_multiple_requests: the issue body clearly contains multiple bugs and/or feature requests that should be tracked independently.
 - close_wrong_repository: a single-app issue was filed in General-Discussion or another app's repository, or an issue affecting several apps was filed in one app's repository.
-- close_missing_template: an applicable form is supplied and the issue clearly does not follow it or a required section was removed. Do not select this if no applicable form is supplied.
+- close_missing_template: an applicable form is supplied and the issue clearly does not follow it or a required section was removed. Do not select this if no applicable form is supplied. When an issue follows one supplied form, contains its required information, and is understandable, do not select close_missing_template merely because another form could also reasonably apply. Select leave_for_human_review.
 - close_not_english: the report is not intelligible in English. Ignore logs, identifiers, and short quoted text.
 - request_missing_details: it retains the appropriate form and contains one request, but its required answers lack information necessary to understand what is being reported. A bug report is sufficient for human review when it identifies the affected area and makes the expected-versus-actual difference intelligible. Steps may be terse or implicit; do not require exhaustive reproduction steps or diagnostic information when the problem is otherwise clear. A feature needs a clear desired change and motivation.
 - request_incomplete_checklist: it otherwise follows the appropriate form, but one or more required checklist items are unchecked.
