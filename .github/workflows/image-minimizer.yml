@@ -2,6 +2,13 @@ name: Image Minimizer
 
 on:
   workflow_call:
+    secrets:
+      APP_ID:
+        required: true
+      APP_PRIVATE_KEY:
+        required: true
+      OPENAI_API_KEY:
+        required: true
   issue_comment:
     types: [created, edited]
   issues:

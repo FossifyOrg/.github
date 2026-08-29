@@ -11,4 +11,7 @@ on:
 jobs:
   call-image-minimizer-workflow:
     uses: FossifyOrg/.github/.github/workflows/image-minimizer.yml@main
-    secrets: inherit
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
