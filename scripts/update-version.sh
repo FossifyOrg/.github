@@ -78,7 +78,7 @@ echo "Creating release marker..."
 mkdir -p .fossify
 cat >.fossify/release-marker.txt <<EOF
 # Auto-generated file. DO NOT EDIT.
-$NEW_VERSION
+$NEW_VERSION ($VERSION_CODE)
 EOF
 
 echo "Version update completed successfully!"
