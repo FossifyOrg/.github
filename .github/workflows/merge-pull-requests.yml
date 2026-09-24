@@ -1,6 +1,8 @@
 name: Merge pull requests
 
 on:
+  schedule:
+    - cron: "30 5 * * 6"
   workflow_dispatch:
     inputs:
       repository:
@@ -54,10 +56,11 @@ on:
 
 concurrency:
   group: "merge-pull-requests"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   merge:
+    if: github.event_name != 'schedule' || vars.AUTO_MERGE_RELEASES == 'true'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
@@ -68,7 +71,30 @@ jobs:
         with:
           egress-policy: audit
 
+      - name: Check release Saturday
+        id: cadence
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT_NAME" != "schedule" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            days=$(( ($(date -u +%s) - $(date -u -d 2026-09-26 +%s)) / 86400 ))
+            if (( days % 14 == 0 )); then
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Not a release Saturday; skipping." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
       - name: Merge pull requests
+        if: steps.cadence.outputs.run == 'true'
+        env:
+          SELECTED_REPO: ${{ inputs.repository || 'all' }}
+          BRANCH: ${{ inputs.branch || 'fossifybot/release' }}
+          MERGE_METHOD: ${{ inputs.merge_method || 'squash' }}
+          FORCE_ADMIN: ${{ inputs.force_admin || false }}
+          PR_AUTHOR: ${{ github.event_name == 'schedule' && 'fossifybot[bot]' || inputs.pr_author }}
         run: |
           set -uo pipefail
 
@@ -91,12 +117,6 @@ jobs:
               "FossifyOrg/Thank-You"
               "FossifyOrg/Voice-Recorder"
           )
-
-          SELECTED_REPO="${{ github.event.inputs.repository }}"
-          BRANCH="${{ github.event.inputs.branch }}"
-          MERGE_METHOD="${{ github.event.inputs.merge_method }}"
-          FORCE_ADMIN="${{ github.event.inputs.force_admin }}"
-          PR_AUTHOR="${{ github.event.inputs.pr_author }}"
 
           case "$MERGE_METHOD" in
               squash) MERGE_FLAG="--squash" ;;
@@ -129,7 +149,7 @@ jobs:
           for repo in "${REPOS[@]}"; do
               echo "Processing: $repo"
               
-              PR_NUMBER=$(gh pr list --repo "$repo" --head "$BRANCH" "${SEARCH_ARGS[@]}" --json number --jq '.[0].number // empty' 2>/dev/null)
+              PR_NUMBER=$(gh pr list --repo "$repo" --head "$BRANCH" "${SEARCH_ARGS[@]}" --json number --jq '.[0].number // empty')
               if [[ -z "$PR_NUMBER" ]]; then
                   echo "[$repo]: No open PR found for branch $BRANCH (author filter: '${PR_AUTHOR:-any}'). Skipping."
                   continue
@@ -137,16 +157,16 @@ jobs:
               
               echo "[$repo]: Found PR #$PR_NUMBER for branch $BRANCH"
 
-              if gh pr review --repo "$repo" --approve "$PR_NUMBER" 2>/dev/null; then
+              if gh pr review --repo "$repo" --approve "$PR_NUMBER"; then
                   echo "[$repo]: PR #$PR_NUMBER approved"
               else
                   echo "[$repo]: Failed to approve PR #$PR_NUMBER"
               fi
               
-              if gh pr merge --repo "$repo" $MERGE_FLAG $ADMIN_FLAG "$PR_NUMBER" 2>/dev/null; then
-                  echo "[$repo]: PR #$PR_NUMBER merged successfully"
+              if gh pr merge --repo "$repo" "$MERGE_FLAG" "$ADMIN_FLAG" "$PR_NUMBER"; then
+                  echo "[$repo]: PR #$PR_NUMBER merge submitted" | tee -a "$GITHUB_STEP_SUMMARY"
               else
-                  echo "[$repo]: Failed to merge PR #$PR_NUMBER. Skipping."
+                  echo "[$repo]: PR #$PR_NUMBER could not be merged. Skipping." | tee -a "$GITHUB_STEP_SUMMARY"
               fi
               
               sleep 1
