@@ -90,6 +90,7 @@ jobs:
       - name: Merge pull requests
         if: steps.cadence.outputs.run == 'true'
         env:
+          EVENT_NAME: ${{ github.event_name }}
           SELECTED_REPO: ${{ inputs.repository || 'all' }}
           BRANCH: ${{ inputs.branch || 'fossifybot/release' }}
           MERGE_METHOD: ${{ inputs.merge_method || 'squash' }}
@@ -97,6 +98,10 @@ jobs:
           PR_AUTHOR: ${{ github.event_name == 'schedule' && 'fossifybot[bot]' || inputs.pr_author }}
         run: |
           set -uo pipefail
+
+          AUTO_MERGE_REPOS=(
+              "FossifyOrg/Calendar"
+          )
 
           REPOS=(
               "FossifyOrg/Calculator"
@@ -134,7 +139,10 @@ jobs:
               ADMIN_FLAG="--auto"
           fi
 
-          if [[ "$SELECTED_REPO" != "all" ]]; then
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+              REPOS=("${AUTO_MERGE_REPOS[@]}")
+              echo "Processing scheduled repositories (${#REPOS[@]} repos)"
+          elif [[ "$SELECTED_REPO" != "all" ]]; then
               REPOS=("$SELECTED_REPO")
               echo "Processing single repository: $SELECTED_REPO"
           else
