@@ -168,8 +168,13 @@ async function getIssueForms(github, context) {
 }
 
 async function moderatePullRequest({github, context, core}) {
-    const pullRequest = context.payload.pull_request;
-    if (!pullRequest || pullRequest.state !== 'open' || Date.parse(pullRequest.created_at) < ENFORCEMENT_START || isTrusted(pullRequest)) return;
+    const eventPullRequest = context.payload.pull_request;
+    if (!eventPullRequest) return;
+    const {data: pullRequest} = await github.rest.pulls.get({
+        ...context.repo,
+        pull_number: eventPullRequest.number
+    });
+    if (pullRequest.state !== 'open' || Date.parse(pullRequest.created_at) < ENFORCEMENT_START || isTrusted(pullRequest)) return;
 
     const closingIssues = await getClosingIssues(github, context, pullRequest.number);
     if (closingIssues.length > 0 && closingIssues.every(isHelpWanted)) return;
