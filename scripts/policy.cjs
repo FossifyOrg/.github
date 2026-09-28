@@ -59,7 +59,7 @@ Select one result:
 - close: the patch does not qualify for any of the exceptions above.
 - human_review: there is not enough information to decide, or the correct result is genuinely ambiguous or a combination of the above exceptions.
 
-The classification only determines whether a PR is automatically closed. Allowing a PR means it remains open for maintainer review; it does not mean that it should be merged. Judge the changed files and patch, not only the author's description. However, do not assess translation correctness, fluency, completeness, usefulness, general code quality, testing quality, or merge readiness beyond what is necessary to determine whether an exception applies. Return a concise reason for the result.`;
+The classification only determines whether a PR is automatically closed. Allowing a PR means it remains open for maintainer review; it does not mean that it should be merged. Judge the changed files and patch, not only the author's description. Some files may have no patch content from GitHub; do not infer their contents. Missing patches alone do not require human_review: select close if the available changes suffice to rule out the exceptions, and human_review if the missing content prevents a decision. However, do not assess translation correctness, fluency, completeness, usefulness, general code quality, testing quality, or merge readiness beyond what is necessary to determine whether an exception applies. Return a concise reason for the result.`;
 
 const PR_MESSAGE = 'Fossify accepts code contributions only for open issues labeled `help wanted`. This pull request does not meet that requirement or one of the documented exceptions, so it is being closed without review. Please read the [contribution guidelines](https://github.com/FossifyOrg/General-Discussion#contributing-code) before starting work.';
 
@@ -183,9 +183,9 @@ async function moderatePullRequest({github, context, core}) {
         core.info(`Pull request has ${pullRequest.changed_files} changed files, but only ${files.length} were returned; no action taken.`);
         return;
     }
-    if (files.some(file => !file.patch)) {
-        core.info('Pull request has a changed file without patch content; no action taken.');
-        return;
+    const missingPatchCount = files.filter(file => !file.patch).length;
+    if (missingPatchCount > 0) {
+        core.warning(`${missingPatchCount} changed file(s) have no patch content; continuing policy assessment with available changes.`);
     }
 
     const decision = await classify({
