@@ -101,6 +101,7 @@ jobs:
 
           AUTO_MERGE_REPOS=(
               "FossifyOrg/Calendar"
+              "FossifyOrg/Documents"
           )
 
           REPOS=(
