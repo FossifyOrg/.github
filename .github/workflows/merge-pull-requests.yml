@@ -2,7 +2,7 @@ name: Merge pull requests
 
 on:
   schedule:
-    - cron: "30 11 * * 6"
+    - cron: "30 5 * * 6"
   workflow_dispatch:
     inputs:
       repository:
@@ -102,6 +102,7 @@ jobs:
           AUTO_MERGE_REPOS=(
               "FossifyOrg/Calendar"
               "FossifyOrg/Documents"
+              "FossifyOrg/Messages"
           )
 
           REPOS=(
