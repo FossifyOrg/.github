@@ -5,7 +5,7 @@ const MAX_ISSUE_FIELDS = 8;
 const ISSUE_MESSAGES = {
     request_missing_details: 'This issue is missing information needed to understand or investigate it. Please edit the issue body to add those details.',
     request_incomplete_checklist: 'One or more required checklist items are unchecked. Please edit the issue body to complete the checklist.',
-    close_missing_template: 'Please open a new issue using the appropriate issue form and keep its required sections intact. If your GitHub client does not support issue forms, please use a web browser.',
+    close_missing_template: 'Please open a new issue using the appropriate issue form and keep its required sections and labels intact. If your GitHub client does not support issue forms, please use a web browser.',
     close_multiple_requests: 'This issue contains multiple bugs or feature requests that should be tracked separately. Please create a separate issue for each one.',
     close_wrong_repository: 'This issue appears to be filed in the wrong repository. Please report it in the repository of the app whose behavior is incorrect or would change. Issues that require changes in multiple apps belong in [General Discussion](https://github.com/FossifyOrg/General-Discussion/issues).',
     close_not_english: 'Please write issue reports in English so maintainers and contributors can understand them.',
