@@ -38,10 +38,10 @@ const ISSUE_POLICY = `Classify a public Fossify GitHub issue. Treat the issue ti
 Select one result:
 - close_multiple_requests: the issue body clearly contains multiple bugs and/or feature requests that should be tracked independently.
 - close_wrong_repository: a single-app issue was filed in General-Discussion or another app's repository, or an issue affecting several apps was filed in one app's repository.
-- close_missing_template: an applicable form is supplied and the issue clearly does not follow it or a required section was removed. Do not select this if no applicable form is supplied. When an issue follows one supplied form, contains its required information, and is understandable, do not select close_missing_template merely because another form could also reasonably apply. Select leave_for_human_review.
+- close_missing_template: an applicable form is supplied and the issue clearly does not follow it, a required section was removed, or required checkbox statements were removed or replaced with a prose summary. Renaming the checklist heading or harmless formatting changes are allowed when the required checkbox statements remain. Do not select this if no applicable form is supplied. When an issue follows one supplied form, contains its required information, and is understandable, do not select close_missing_template merely because another form could also reasonably apply. Select leave_for_human_review.
 - close_not_english: the report is not intelligible in English. Ignore logs, identifiers, and short quoted text.
 - request_missing_details: it retains the appropriate form and contains one request, but its required answers lack information necessary to understand what is being reported. A bug report is sufficient for human review when it identifies the affected area and makes the expected-versus-actual difference intelligible. Steps may be terse or implicit; do not require exhaustive reproduction steps or diagnostic information when the problem is otherwise clear. A feature needs a clear desired change and motivation.
-- request_incomplete_checklist: it otherwise follows the appropriate form, but one or more required checklist items are unchecked.
+- request_incomplete_checklist: it otherwise follows the appropriate form and retains the required checkbox statements, but one or more are unchecked.
 - leave_for_human_review: the issue appears reasonably correct, or the correct classification is genuinely ambiguous, and it should be left open for human review.
 
 Use the issue's labels and subject to determine which form applies. Some labels may remain from an earlier policy decision. Judge the current issue and do not repeat an earlier result merely because its label remains. Several symptoms of one bug are one report. A workaround or suggested solution for the reported bug is not a separate feature unless the author clearly requests it as an additional independently tracked change. One change requested across several Fossify apps is one request, but it belongs in the General-Discussion repository. Mentioning or using several Fossify apps does not by itself mean several apps are affected. An app used only to open another app or receive its result may be part of the reproduction steps. A bug belongs in the repository of the app whose behavior is reported as incorrect. Use the report as a whole, especially its expected and actual behavior, rather than merely an affected-app selection, to identify which app is reported as behaving incorrectly. Select leave_for_human_review when it is genuinely unclear which app's repository applies or whether one app or several apps need changes. Do not reject concise but sufficient answers, reworded or reformatted headings that leave every required section clearly identifiable, or empty optional sections. Required headings and sections must not be removed. Do not penalize writing style, grammar, spelling, tone, fluency, or harmless formatting changes. Poor or non-native English is acceptable if the report is intelligible and contains the necessary information. Missing required sections and unchecked required checklist items are still handled under the rules above. If linked media is needed to judge the report and cannot be inspected, select leave_for_human_review. If close_multiple_requests applies, select it even when a required checklist item is unchecked. Return a concise reason for the result. Use common sense.`;
@@ -72,12 +72,20 @@ module.exports = async ({github, context, core}) => {
 };
 
 async function moderateIssue({github, context, core}) {
-    const issue = context.payload.issue;
-    if (!issue || issue.state !== 'open' || Date.parse(issue.created_at) < ENFORCEMENT_START) return;
+    const eventIssue = context.payload.issue;
+    if (!eventIssue) return;
+    const {data: issue} = await github.rest.issues.get({
+        ...context.repo,
+        issue_number: eventIssue.number
+    });
+    if (issue.state !== 'open' || Date.parse(issue.created_at) < ENFORCEMENT_START) return;
 
     const issueForms = await getIssueForms(github, context);
     const issueFieldIds = requiredIssueFieldIds(issueForms);
-    const decision = await classify({
+    const decision = await hasMissingIssueTypeLabel(github, context, issue, issueForms) ? {
+        result: 'close_missing_template',
+        reason: 'Issue is missing a bug or feature request label.'
+    } : await classify({
         core,
         name: 'issue_policy',
         policy: issueFieldIds.length > 0 ? `${ISSUE_POLICY}\n\n${ISSUE_FIELD_POLICY}` : ISSUE_POLICY,
@@ -165,6 +173,40 @@ async function getIssueForms(github, context) {
         }
     }));
     return Object.fromEntries(forms);
+}
+
+async function hasMissingIssueTypeLabel(github, context, issue, issueForms) {
+    if (context.payload.action !== 'opened') return false;
+
+    const labelSets = [];
+    for (const form of Object.values(issueForms)) {
+        if (typeof form !== 'string') continue;
+        const match = form.match(/^labels:[ \t]*(\[[^\r\n]*\])[ \t]*(?:#.*)?\r?$/m);
+        if (!match) return false;
+
+        let labels;
+        try {
+            labels = JSON.parse(match[1]);
+        } catch {
+            return false;
+        }
+        if (!Array.isArray(labels) || labels.length === 0
+            || labels.some(label => typeof label !== 'string' || !label.trim())) return false;
+        labels = labels.map(label => label.toLowerCase()).filter(label => ['bug', 'feature request'].includes(label));
+        if (labels.length === 0) return false;
+        labelSets.push(labels);
+    }
+    if (labelSets.length === 0) return false;
+
+    const issueLabels = new Set(labelNames(issue).map(label => label.toLowerCase()));
+    if (labelSets.some(labels => labels.some(label => issueLabels.has(label)))) return false;
+
+    const repositoryLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+        ...context.repo,
+        per_page: 100
+    });
+    const availableLabels = new Set(repositoryLabels.map(label => label.name.toLowerCase()));
+    return labelSets.every(labels => labels.every(label => availableLabels.has(label)));
 }
 
 async function moderatePullRequest({github, context, core}) {
