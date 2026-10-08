@@ -20,7 +20,7 @@ const ISSUE_FIELD_GUIDANCE = {
     'expected-behavior': ['Expected behavior', 'Describe what should happen and when.'],
     'feature-description': ['Feature description', 'Describe the requested change clearly, including how the app should behave.'],
     'steps-to-reproduce': ['Steps to reproduce', 'Describe step-by-step how to reproduce or observe the problem.'],
-    'why-is-the-feature-requested': ['Reason for the feature', 'Explain the problem or limitation this change would solve.']
+    'why-is-the-feature-requested': ['Why do you want this feature?', 'Describe the problem or limitation this feature would solve, or how it would help you.']
 };
 
 const ISSUE_RESULTS = [
@@ -440,11 +440,11 @@ function missingDetailsMessage(fields, issueFieldIds) {
 
         seen.add(field.id);
         const [label, prompt] = fieldGuidance;
-        guidance.push(`- **${label}** (${field.state}): ${prompt}`);
+        guidance.push(`- **${label}** ${prompt}`);
     }
 
     if (guidance.length === 0) return ISSUE_MESSAGES.request_missing_details;
-    return `Thanks for the report. A few fields need more detail before we can investigate:\n\nMissing or incomplete fields:\n\n${guidance.join('\n')}`;
+    return `Thanks for the report. Please edit your issue to add the following details:\n\n${guidance.join('\n')}`;
 }
 
 function requiredIssueFieldIds(issueForms) {
