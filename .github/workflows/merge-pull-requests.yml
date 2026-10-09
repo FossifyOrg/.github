@@ -103,6 +103,7 @@ jobs:
               "FossifyOrg/Calendar"
               "FossifyOrg/Documents"
               "FossifyOrg/File-Manager"
+              "FossifyOrg/Gallery"
               "FossifyOrg/Messages"
               "FossifyOrg/Paint"
               "FossifyOrg/Thank-You"
