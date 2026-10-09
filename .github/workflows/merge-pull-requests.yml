@@ -105,7 +105,6 @@ jobs:
               "FossifyOrg/File-Manager"
               "FossifyOrg/Gallery"
               "FossifyOrg/Messages"
-              "FossifyOrg/Paint"
               "FossifyOrg/Thank-You"
               "FossifyOrg/Voice-Recorder"
           )
