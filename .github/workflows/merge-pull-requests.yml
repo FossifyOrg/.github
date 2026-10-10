@@ -92,22 +92,13 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           SELECTED_REPO: ${{ inputs.repository || 'all' }}
+          AUTO_MERGE_REPOS: ${{ vars.AUTO_MERGE_REPOS }}
           BRANCH: ${{ inputs.branch || 'fossifybot/release' }}
           MERGE_METHOD: ${{ inputs.merge_method || 'squash' }}
           FORCE_ADMIN: ${{ inputs.force_admin || false }}
           PR_AUTHOR: ${{ github.event_name == 'schedule' && 'fossifybot[bot]' || inputs.pr_author }}
         run: |
           set -uo pipefail
-
-          AUTO_MERGE_REPOS=(
-              "FossifyOrg/Calendar"
-              "FossifyOrg/Documents"
-              "FossifyOrg/File-Manager"
-              "FossifyOrg/Gallery"
-              "FossifyOrg/Messages"
-              "FossifyOrg/Thank-You"
-              "FossifyOrg/Voice-Recorder"
-          )
 
           REPOS=(
               "FossifyOrg/Calculator"
@@ -146,7 +137,28 @@ jobs:
           fi
 
           if [[ "$EVENT_NAME" == "schedule" ]]; then
-              REPOS=("${AUTO_MERGE_REPOS[@]}")
+              # Set AUTO_MERGE_REPOS to comma-separated full names, e.g. FossifyOrg/Calendar,FossifyOrg/Documents.
+              repo_pattern='[[:blank:]]*FossifyOrg/[A-Za-z0-9-]+[[:blank:]]*'
+              list_pattern="^${repo_pattern}(,${repo_pattern})*$"
+              if [[ ! "$AUTO_MERGE_REPOS" =~ $list_pattern ]]; then
+                  echo "AUTO_MERGE_REPOS must be a nonempty comma-separated list of FossifyOrg apps."
+                  exit 1
+              fi
+              IFS=',' read -r -a SCHEDULED_REPOS <<< "$AUTO_MERGE_REPOS"
+              selected_repos=()
+              for repo in "${SCHEDULED_REPOS[@]}"; do
+                  repo="${repo//[[:blank:]]/}"
+                  if [[ " ${REPOS[*]} " != *" $repo "* ]]; then
+                      echo "Unknown AUTO_MERGE_REPOS app: $repo"
+                      exit 1
+                  fi
+                  if [[ " ${selected_repos[*]} " == *" $repo "* ]]; then
+                      echo "Duplicate AUTO_MERGE_REPOS app: $repo"
+                      exit 1
+                  fi
+                  selected_repos+=("$repo")
+              done
+              REPOS=("${selected_repos[@]}")
               echo "Processing scheduled repositories (${#REPOS[@]} repos)"
           elif [[ "$SELECTED_REPO" != "all" ]]; then
               REPOS=("$SELECTED_REPO")
