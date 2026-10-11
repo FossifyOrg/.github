@@ -124,8 +124,6 @@ jobs:
         timeout-minutes: 30
         permissions:
             contents: read
-        env:
-            RELEASE_VARIANT: ${{ startsWith(inputs.test_task, ':app:testCore') && 'Core' || 'Foss' }}
         outputs:
             matrix: ${{ steps.prepare.outputs.matrix }}
         steps:
@@ -147,17 +145,16 @@ jobs:
                   distribution: "temurin"
             - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
             - name: Build minified release APK
-              run: ./gradlew ":app:assemble${RELEASE_VARIANT}Release"
+              run: ./gradlew :app:assembleFossRelease
             - name: Prepare APK for fresh emulators
               id: prepare
               shell: bash
               run: |
                   set -euo pipefail
                   shopt -s nullglob
-                  variant=${RELEASE_VARIANT,,}
-                  apks=(app/build/outputs/apk/"$variant"/release/*.apk)
+                  apks=(app/build/outputs/apk/foss/release/*.apk)
                   [[ ${#apks[@]} == 1 ]] || { echo "::error::Expected one release APK"; exit 1; }
-                  mapping="app/build/outputs/mapping/${variant}Release/mapping.txt"
+                  mapping="app/build/outputs/mapping/fossRelease/mapping.txt"
                   test -s "$mapping"
 
                   build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
