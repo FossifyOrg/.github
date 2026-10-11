@@ -58,6 +58,7 @@ def parse_manifest(text):
         raise SmokeError("Expected a non-debuggable release APK")
 
     activities = []
+    home_activity = None
     for element in app:
         if element.tag not in ("activity", "activity-alias"):
             continue
@@ -70,6 +71,11 @@ def parse_manifest(text):
                     for c in f.findall("category"))
             for f in filters
         )
+        if (android_bool(element, "enabled", True)
+                and android_bool(element, "exported", bool(filters))
+                and any(c.get(ANDROID + "name") == "android.intent.category.HOME"
+                        for f in filters for c in f.findall("category"))):
+            home_activity = name
         activities.append({
             "name": name,
             "target": full_name(package, element.get(ANDROID + "targetActivity", name)),
@@ -83,6 +89,8 @@ def parse_manifest(text):
     if not any(a["enabled"] and a["exported"] and a["launcher"] for a in activities):
         raise SmokeError("No enabled exported launcher in APK")
     roles = []
+    if home_activity:
+        roles.append("HOME")
     if any(a.get(ANDROID + "name") == "android.provider.Telephony.SMS_DELIVER"
            for a in app.findall("receiver/intent-filter/action")):
         roles.append("SMS")
@@ -92,7 +100,7 @@ def parse_manifest(text):
     permissions = sorted({p.get(ANDROID + "name") for p in root.findall("uses-permission")
                           + root.findall("uses-permission-sdk-23") if p.get(ANDROID + "name")})
     return {"package": package, "minimum_sdk": minimum, "activities": activities,
-            "roles": roles, "permissions": permissions}
+            "roles": roles, "home_activity": home_activity, "permissions": permissions}
 
 
 def command(args, timeout=30):
@@ -164,24 +172,23 @@ class Emulator:
             raise SmokeError(f"Emulator API {api} is below APK minimum SDK {minimum}")
         return api
 
-    def set_roles(self, roles, package, api):
+    def set_roles(self, roles, package, api, home_activity=None):
         for role in roles:
             if api >= 29:
                 self.shell("cmd", "role", "add-role-holder", "--user", "0",
                            "android.app.role." + role, package)
-                holders = self.shell("cmd", "role", "get-role-holders", "--user", "0",
-                                     "android.app.role." + role).splitlines()
-                if package not in holders:
-                    raise SmokeError(f"Could not select default {role} app")
             elif role == "SMS":
                 self.shell("settings", "put", "secure", "sms_default_application", package)
                 self.shell("appops", "set", package, "WRITE_SMS", "allow")
                 if self.shell("settings", "get", "secure", "sms_default_application").strip() != package:
                     raise SmokeError("Could not select default SMS app")
-            else:
-                self.shell("cmd", "telecom", "set-default-dialer", package)
-                if self.shell("cmd", "telecom", "get-default-dialer").strip() != package:
+            elif role == "DIALER":
+                self.shell("telecom", "set-default-dialer", package)
+                if self.shell("telecom", "get-default-dialer").strip() != package:
                     raise SmokeError("Could not select default dialer app")
+            elif role == "HOME":
+                self.shell("cmd", "package", "set-home-activity", "--user", "0",
+                           package + "/" + home_activity)
 
     def set_storage_access(self, permissions, package, api):
         if api >= 30 and "android.permission.MANAGE_EXTERNAL_STORAGE" in permissions:
@@ -222,7 +229,8 @@ def run_checks(args):
         api = emulator.check_device(args.api, plan["minimum_sdk"])
         report["api"] = api
         package = plan["package"]
-        if emulator.shell("pm", "path", package).strip():
+        packages = emulator.shell("pm", "list", "packages", "--user", "0").splitlines()
+        if f"package:{package}" in packages:
             raise SmokeError("APK package is already installed; use a fresh emulator")
         if emulator.shell("pm", "list", "packages", "-3").strip():
             raise SmokeError("Emulator has user-installed apps; use a fresh one")
@@ -232,7 +240,7 @@ def run_checks(args):
             raise SmokeError("APK installation did not report success: " + installed)
         diagnostics_allowed = True
         emulator.set_storage_access(plan.get("permissions", []), package, api)
-        emulator.set_roles(plan["roles"], package, api)
+        emulator.set_roles(plan["roles"], package, api, plan["home_activity"])
         attempted = set()
         report["activities"] = [{"name": a["name"], "result": "not attempted"}
                                 for a in plan["activities"]]

@@ -139,6 +139,8 @@ jobs:
                   ref: ${{ inputs.shared_ref }}
                   path: .github-repo
                   persist-credentials: false
+            - name: Test launch-check helper
+              run: python3 -m unittest discover -s .github-repo/scripts -p 'test_emulator_smoke.py'
             - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
               with:
                   java-version: 17
