@@ -18,6 +18,11 @@ on:
                 type: string
                 default: ":app:testFossDebugUnitTest"
                 required: false
+            shared_ref:
+                description: "Shared script revision; match the workflow revision when using a branch, tag or commit."
+                type: string
+                default: "main"
+                required: false
 
 concurrency:
     group: pr-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,6 +35,7 @@ jobs:
             pull-requests: read
         outputs:
             run_ci: ${{ steps.filter.outputs.all_count != steps.filter.outputs.ignored_count }}
+            release_pr: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'fossifybot[bot]' && github.event.pull_request.head.ref == 'fossifybot/release' && github.event.pull_request.head.repo.full_name == github.repository && startsWith(inputs.test_task, ':app:') }}
         steps:
             - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
               id: filter
@@ -47,7 +53,7 @@ jobs:
 
     wrapper-validation:
         needs: changes
-        if: needs.changes.outputs.run_ci == 'true'
+        if: needs.changes.outputs.run_ci == 'true' || needs.changes.outputs.release_pr == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -111,10 +117,127 @@ jobs:
                   name: "lint-results"
                   path: "app/build/intermediates/lint_intermediate_text_report/fossDebug/lint-results-fossDebug.txt"
 
+    release-build:
+        needs: [changes, wrapper-validation]
+        if: needs.changes.outputs.release_pr == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        env:
+            RELEASE_VARIANT: ${{ startsWith(inputs.test_task, ':app:testCore') && 'Core' || 'Foss' }}
+        outputs:
+            matrix: ${{ steps.prepare.outputs.matrix }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              with:
+                  persist-credentials: false
+            - name: Checkout shared scripts
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              with:
+                  repository: FossifyOrg/.github
+                  ref: ${{ inputs.shared_ref }}
+                  path: .github-repo
+                  persist-credentials: false
+            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+              with:
+                  java-version: 17
+                  distribution: "temurin"
+            - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
+            - name: Build minified release APK
+              run: ./gradlew ":app:assemble${RELEASE_VARIANT}Release"
+            - name: Prepare APK for fresh emulators
+              id: prepare
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  shopt -s nullglob
+                  variant=${RELEASE_VARIANT,,}
+                  apks=(app/build/outputs/apk/"$variant"/release/*.apk)
+                  [[ ${#apks[@]} == 1 ]] || { echo "::error::Expected one release APK"; exit 1; }
+                  mapping="app/build/outputs/mapping/${variant}Release/mapping.txt"
+                  test -s "$mapping"
+
+                  build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+                  mkdir -p release-smoke
+                  keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/release-smoke.keystore" \
+                      -storepass android -keypass android -alias smoke -keyalg RSA -keysize 2048 \
+                      -validity 2 -dname 'CN=Emulator test'
+                  "$build_tools/zipalign" -P 16 -f 4 "${apks[0]}" "$RUNNER_TEMP/release-smoke-aligned.apk"
+                  "$build_tools/apksigner" sign --ks "$RUNNER_TEMP/release-smoke.keystore" \
+                      --ks-pass pass:android --key-pass pass:android \
+                      --out release-smoke/app.apk "$RUNNER_TEMP/release-smoke-aligned.apk"
+                  "$build_tools/apksigner" verify release-smoke/app.apk
+                  "$build_tools/zipalign" -P 16 -c 4 release-smoke/app.apk
+                  cp "$mapping" release-smoke/
+                  cp .github-repo/scripts/emulator_smoke.py release-smoke/
+                  python3 release-smoke/emulator_smoke.py plan --apk release-smoke/app.apk \
+                      --output release-smoke/plan.json --github-output "$GITHUB_OUTPUT"
+            - name: Save release test files
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                  name: release-smoke-apk
+                  path: release-smoke/
+                  if-no-files-found: error
+                  retention-days: 7
+
+    release-emulators:
+        name: Release launch checks (Android ${{ matrix.android }})
+        needs: [changes, release-build]
+        if: needs.changes.outputs.release_pr == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+        permissions:
+            contents: read
+        strategy:
+            fail-fast: false
+            max-parallel: 2
+            matrix: ${{ fromJSON(needs.release-build.outputs.matrix) }}
+        steps:
+            - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+              with:
+                  name: release-smoke-apk
+                  path: release-smoke
+            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+              with:
+                  java-version: 17
+                  distribution: "temurin"
+            - name: Enable emulator acceleration
+              run: sudo chown "$(id -u)" /dev/kvm
+            - name: Use command-line tools for Android 17
+              if: matrix.api == 37
+              run: |
+                  sdk_tools="$ANDROID_HOME/cmdline-tools"
+                  sdk_version=$("$sdk_tools/latest/bin/sdkmanager" --version | tail -n 1)
+                  if ! [ "${sdk_version%%.*}" -ge 22 ] 2>/dev/null; then
+                      "$sdk_tools/latest/bin/sdkmanager" --install "cmdline-tools;22.0"
+                      mv "$sdk_tools/latest" "$RUNNER_TEMP/preinstalled-cmdline-tools"
+                      ln -s "$sdk_tools/22.0" "$sdk_tools/latest"
+                  fi
+                  "$sdk_tools/latest/bin/sdkmanager" --version
+            - name: Launch release activities
+              uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f8db72807de5e036a4ed
+              with:
+                  api-level: ${{ matrix.image }}
+                  target: google_apis
+                  arch: x86_64
+                  ram-size: 2048M
+                  cores: 2
+                  emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+                  script: python3 release-smoke/emulator_smoke.py run --apk release-smoke/app.apk --serial emulator-5554 --api ${{ matrix.api }} --output launch-results
+            - name: Save launch results
+              if: always()
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                  name: release-launch-android-${{ matrix.android }}
+                  path: launch-results/
+                  if-no-files-found: warn
+                  retention-days: 7
+
     ci-gate:
         if: always()
         runs-on: ubuntu-latest
-        needs: [changes, wrapper-validation, test, detekt, lint]
+        needs: [changes, wrapper-validation, test, detekt, lint, release-build, release-emulators]
         steps:
             - name: Enforce required checks
               run: |
@@ -125,6 +248,16 @@ jobs:
                   echo "test: ${{ needs.test.result }}"
                   echo "detekt: ${{ needs.detekt.result }} (input run_detekt=${{ inputs.run_detekt }})"
                   echo "lint: ${{ needs.lint.result }} (input run_lint=${{ inputs.run_lint }})"
+                  echo "release-build: ${{ needs.release-build.result }}"
+                  echo "release-emulators: ${{ needs.release-emulators.result }}"
+
+                  [[ "${{ needs.changes.result }}" == "success" ]] || exit 1
+
+                  if [[ "${{ needs.changes.outputs.release_pr }}" == "true" ]]; then
+                      [[ "${{ needs.wrapper-validation.result }}" == "success" ]] || exit 1
+                      [[ "${{ needs.release-build.result }}" == "success" ]] || exit 1
+                      [[ "${{ needs.release-emulators.result }}" == "success" ]] || exit 1
+                  fi
 
                   if [[ "${{ needs.changes.outputs.run_ci }}" != "true" ]]; then
                       exit 0
