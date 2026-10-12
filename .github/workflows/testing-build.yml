@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload debug APK
         id: upload-debug
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: "test-build-foss-debug"
           path: "app/build/outputs/apk/foss/debug/*debug.apk"
@@ -80,7 +80,7 @@ jobs:
           github.event.pull_request.user.login == 'fossifybot[bot]' &&
           github.event.pull_request.head.ref == 'fossifybot/release'
         id: upload-release
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: "test-build-foss-release"
           path: "app/build/outputs/apk/foss/release/*release.apk"
