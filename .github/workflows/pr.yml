@@ -100,13 +100,13 @@ jobs:
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               run: ./gradlew updateLintBaseline
             - name: Upload new baseline
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               if: ${{ failure() && steps.lint.conclusion == 'failure' }}
               with:
                   name: "new-lint-baseline"
                   path: "app/lint-baseline.xml"
             - name: Upload results
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               if: ${{ !cancelled() }}
               with:
                   name: "lint-results"
@@ -165,7 +165,7 @@ jobs:
                   python3 release-smoke/emulator_smoke.py plan --apk release-smoke/app.apk \
                       --output release-smoke/plan.json --github-output "$GITHUB_OUTPUT"
             - name: Save release test files
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: release-smoke-apk
                   path: release-smoke/
@@ -218,7 +218,7 @@ jobs:
                   script: python3 release-smoke/emulator_smoke.py run --apk release-smoke/app.apk --serial emulator-5554 --api ${{ matrix.api }} --output launch-results
             - name: Save launch results
               if: always()
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
               with:
                   name: release-launch-android-${{ matrix.android }}
                   path: launch-results/
