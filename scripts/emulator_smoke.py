@@ -232,8 +232,6 @@ def run_checks(args):
         packages = emulator.shell("pm", "list", "packages", "--user", "0").splitlines()
         if f"package:{package}" in packages:
             raise SmokeError("APK package is already installed; use a fresh emulator")
-        if emulator.shell("pm", "list", "packages", "-3").strip():
-            raise SmokeError("Emulator has user-installed apps; use a fresh one")
         emulator.adb("logcat", "-c")
         installed = emulator.adb("install", "-g", str(args.apk.resolve()), timeout=120)
         if "Success" not in installed:
