@@ -18,11 +18,6 @@ on:
                 type: string
                 default: ":app:testFossDebugUnitTest"
                 required: false
-            shared_ref:
-                description: "Shared script revision; match the workflow revision when using a branch, tag or commit."
-                type: string
-                default: "main"
-                required: false
 
 concurrency:
     group: pr-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -134,7 +129,6 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   repository: FossifyOrg/.github
-                  ref: ${{ inputs.shared_ref }}
                   path: .github-repo
                   persist-credentials: false
             - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
