@@ -220,7 +220,7 @@ jobs:
                   arch: x86_64
                   ram-size: 2048M
                   cores: 2
-                  emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+                  emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back emulated -camera-front emulated
                   script: python3 release-smoke/emulator_smoke.py run --apk release-smoke/app.apk --serial emulator-5554 --api ${{ matrix.api }} --output launch-results
             - name: Save launch results
               if: always()
