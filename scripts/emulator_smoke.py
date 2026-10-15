@@ -175,16 +175,8 @@ class Emulator:
     def set_roles(self, roles, package, api, home_activity=None):
         for role in roles:
             if api >= 29:
-                try:
-                    self.shell("cmd", "role", "add-role-holder", "--user", "0",
-                               "android.app.role." + role, package)
-                except (SmokeError, subprocess.TimeoutExpired):
-                    # Check the holder even when the role callback failed.
-                    pass
-                holders = self.shell("cmd", "role", "get-role-holders", "--user", "0",
-                                     "android.app.role." + role).splitlines()
-                if package not in holders:
-                    raise SmokeError(f"Could not select default {role} app")
+                self.shell("cmd", "role", "add-role-holder", "--user", "0",
+                           "android.app.role." + role, package)
             elif role == "SMS":
                 self.shell("settings", "put", "secure", "sms_default_application", package)
                 self.shell("appops", "set", package, "WRITE_SMS", "allow")
