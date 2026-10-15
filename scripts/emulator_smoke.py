@@ -1,4 +1,4 @@
-"""Launch an APK's enabled exported activities on a fresh Android emulator."""
+"""Launch an APK's enabled exported activities on an Android emulator."""
 
 import argparse
 import hashlib
@@ -152,7 +152,7 @@ def resumed_package(text, package):
 class Emulator:
     def __init__(self, serial):
         if not re.fullmatch(r"emulator-\d+", serial):
-            raise SmokeError("Only a fresh emulator serial is accepted")
+            raise SmokeError("Only an emulator serial is accepted")
         self.serial = serial
 
     def adb(self, *args, timeout=30):
@@ -175,8 +175,16 @@ class Emulator:
     def set_roles(self, roles, package, api, home_activity=None):
         for role in roles:
             if api >= 29:
-                self.shell("cmd", "role", "add-role-holder", "--user", "0",
-                           "android.app.role." + role, package)
+                try:
+                    self.shell("cmd", "role", "add-role-holder", "--user", "0",
+                               "android.app.role." + role, package)
+                except (SmokeError, subprocess.TimeoutExpired):
+                    # Check the holder even when the role callback failed.
+                    pass
+                holders = self.shell("cmd", "role", "get-role-holders", "--user", "0",
+                                     "android.app.role." + role).splitlines()
+                if package not in holders:
+                    raise SmokeError(f"Could not select default {role} app")
             elif role == "SMS":
                 self.shell("settings", "put", "secure", "sms_default_application", package)
                 self.shell("appops", "set", package, "WRITE_SMS", "allow")
@@ -201,7 +209,8 @@ class Emulator:
 def write_report(output, report):
     output.mkdir(parents=True, exist_ok=True)
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    lines = [f"Release launch checks: {report.get('package', 'APK')} (API {report.get('api', '?')})", "",
+    lines = [f"Release launch checks: {report.get('package', 'APK')} (API {report.get('api', '?')})",
+             f"Status: {report['status']}", "",
              "Activity | Result", "--- | ---"]
     lines += [f"{a['name']} | {a['result']}" for a in report["activities"]]
     lines += ["", "These checks cover startup only. Internal screens and data-dependent flows are not exercised."]
@@ -229,10 +238,6 @@ def run_checks(args):
         api = emulator.check_device(args.api, plan["minimum_sdk"])
         report["api"] = api
         package = plan["package"]
-        packages = emulator.shell("pm", "list", "packages", "--user", "0").splitlines()
-        if f"package:{package}" in packages:
-            raise SmokeError("APK package is already installed; use a fresh emulator")
-        emulator.adb("logcat", "-c")
         installed = emulator.adb("install", "-g", str(args.apk.resolve()), timeout=120)
         if "Success" not in installed:
             raise SmokeError("APK installation did not report success: " + installed)
@@ -263,7 +268,6 @@ def run_checks(args):
                 continue
             attempted.add(activity["target"])
             emulator.shell("am", "force-stop", package)
-            emulator.shell("input", "keyevent", "KEYCODE_HOME")
             start = ["am", "start", "-W", "-n", package + "/" + activity["name"]]
             if activity["launcher"]:
                 start += ["-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER"]
@@ -275,18 +279,20 @@ def run_checks(args):
                 raise SmokeError(f"Launch did not report success for {activity['name']}: {launch}")
             emulator.shell("input", "keyevent", "KEYCODE_TAB")
             time.sleep(args.observe_seconds)
-            log = emulator.adb("logcat", "-b", "all", "-d", "-v", "threadtime", timeout=45)
+            activities = emulator.shell("dumpsys", "activity", "activities")
+            foreground = resumed_package(activities, package)
+            entry["result"] = "started; app resumed" if foreground else "did not reach app"
+            try:
+                log = emulator.adb("logcat", "-b", "all", "-d", "-v", "threadtime", timeout=45)
+            except (SmokeError, OSError, subprocess.TimeoutExpired) as error:
+                raise SmokeError(f"Could not collect logs after launching {activity['name']}: {error}") from error
             (output / "logcat.txt").write_text(log, encoding="utf-8")
             crashes = faults(log, package)
             if crashes:
                 entry["result"] = "crash or ANR"
                 raise SmokeError("App crash or ANR detected: " + "\n".join(crashes))
-            activities = emulator.shell("dumpsys", "activity", "activities")
-            foreground = resumed_package(activities, package)
-            if activity["launcher"] and not foreground:
-                entry["result"] = "launcher did not reach app"
-                raise SmokeError("Launcher did not leave an app activity resumed after setup")
-            entry["result"] = "started; app resumed" if foreground else "started then returned; needs input or navigation"
+            if not foreground:
+                raise SmokeError(f"Launching {activity['name']} did not leave an app activity resumed after setup")
             if activity["has_intent_data"]:
                 entry["note"] = "No intent data supplied; data-dependent behavior is not tested"
         report["status"] = "passed"
