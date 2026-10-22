@@ -149,6 +149,21 @@ def resumed_package(text, package):
                for line in text.splitlines())
 
 
+def role_held(text, role, package):
+    user_id = role_name = None
+    for line in text.splitlines():
+        key, _, value = line.strip().partition("=")
+        if key == "user_id":
+            user_id = value
+            role_name = None
+        elif key == "name":
+            role_name = value
+        elif (key == "holders" and user_id == "0"
+              and role_name == role and value == package):
+            return True
+    return False
+
+
 class Emulator:
     def __init__(self, serial):
         if not re.fullmatch(r"emulator-\d+", serial):
@@ -175,8 +190,17 @@ class Emulator:
     def set_roles(self, roles, package, api, home_activity=None):
         for role in roles:
             if api >= 29:
-                self.shell("cmd", "role", "add-role-holder", "--user", "0",
-                           "android.app.role." + role, package)
+                role_name = "android.app.role." + role
+                try:
+                    self.shell("cmd", "role", "add-role-holder", "--user", "0",
+                               role_name, package, timeout=15)
+                except SmokeError as error:
+                    if ("java.util.concurrent.TimeoutException" not in str(error)
+                            or "RoleManagerShellCommand$CallbackFuture.waitForResult" not in str(error)):
+                        raise
+                    # The role assignment can finish before Android's callback times out.
+                    if not role_held(self.shell("dumpsys", "role"), role_name, package):
+                        raise
             elif role == "SMS":
                 self.shell("settings", "put", "secure", "sms_default_application", package)
                 self.shell("appops", "set", package, "WRITE_SMS", "allow")
