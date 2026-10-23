@@ -2,6 +2,12 @@ name: Prepare Release PR
 
 on:
   workflow_call:
+    inputs:
+      abi_apks:
+        description: "Reserve version codes and changelogs for per-ABI APKs"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-pr-${{ github.repository }}
@@ -31,9 +37,15 @@ jobs:
 
       - name: Get next version code
         id: version-code
+        env:
+          ABI_APKS: ${{ inputs.abi_apks }}
         run: |
           currentVersionCode=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
-          nextVersionCode=$((currentVersionCode+1))
+          if [[ "$ABI_APKS" == "true" ]]; then
+            nextVersionCode=$(( (currentVersionCode / 10 + 1) * 10 ))
+          else
+            nextVersionCode=$((currentVersionCode+1))
+          fi
           echo "nextVersionCode=$nextVersionCode" >> $GITHUB_OUTPUT
 
       - name: Check release history
@@ -170,6 +182,8 @@ jobs:
         if: ${{ steps.update-version.outcome == 'success' }}
         id: extract_changelog
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          ABI_APKS: ${{ inputs.abi_apks }}
         with:
           script: |
             const fs = require('fs');
@@ -184,12 +198,15 @@ jobs:
 
             try {
               const fastlaneNotes = formatForFastlane(changelogPath, tagVersion);
-              const versionCode = "${{ steps.version-code.outputs.nextVersionCode }}";
+              const versionCode = Number("${{ steps.version-code.outputs.nextVersionCode }}");
               const metadataPath = path.join(process.env.GITHUB_WORKSPACE, 'fastlane', 'metadata', 'android', 'en-US', 'changelogs');
               if (!fs.existsSync(metadataPath)) {
                 fs.mkdirSync(metadataPath, { recursive: true });
               }
-              fs.writeFileSync(path.join(metadataPath, `${versionCode}.txt`), fastlaneNotes);
+              const offsets = process.env.ABI_APKS === 'true' ? [0, 1, 2, 3, 4] : [0];
+              for (const offset of offsets) {
+                fs.writeFileSync(path.join(metadataPath, `${versionCode + offset}.txt`), fastlaneNotes);
+              }
 
               // Use GitHub format for the PR body
               const notes = formatForGitHub(changelogPath, tagVersion,  null, process.env.GITHUB_REPOSITORY);
