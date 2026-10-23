@@ -3,6 +3,11 @@ name: Release
 on:
   workflow_call:
     inputs:
+      abi_apks:
+        description: "Publish universal and per-ABI FOSS APKs"
+        required: false
+        type: boolean
+        default: false
       track:
         description: "Rollout track (e.g. beta, production)"
         required: false
@@ -152,7 +157,14 @@ jobs:
           java-version: "17"
 
       - name: Build Release APK
-        run: ./gradlew assembleFossRelease
+        env:
+          ABI_APKS: ${{ inputs.abi_apks }}
+        run: |
+          if [[ "$ABI_APKS" == "true" ]]; then
+            ./gradlew assembleFossRelease -PABI_SPLITS=true
+          else
+            ./gradlew assembleFossRelease
+          fi
 
       - name: Setup NodeJS
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
