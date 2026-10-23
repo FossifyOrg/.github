@@ -176,6 +176,27 @@ class Emulator:
     def shell(self, *args, timeout=30):
         return self.adb("shell", shlex.join(args), timeout=timeout)
 
+    def collect_logs(self, output, name="logcat"):
+        log_path = output / f"{name}.txt"
+        error_path = output / f"{name}.stderr.txt"
+        args = ["adb", "-s", self.serial, "logcat",
+                "-b", "main", "-b", "system", "-b", "events", "-b", "crash",
+                "-d", "-v", "threadtime"]
+        try:
+            with log_path.open("wb") as log, error_path.open("wb") as errors:
+                result = subprocess.run(args, stdout=log, stderr=errors, timeout=45)
+        except subprocess.TimeoutExpired as error:
+            raise SmokeError(f"Log collection timed out after 45 seconds; see {log_path.name} "
+                             f"and {error_path.name}") from error
+        if result.returncode:
+            with error_path.open("rb") as errors:
+                errors.seek(0, os.SEEK_END)
+                errors.seek(max(0, errors.tell() - 2000))
+                detail = errors.read().decode("utf-8", errors="replace").strip()
+            raise SmokeError(f"Log collection exited with status {result.returncode}; "
+                             f"see {log_path.name} and {error_path.name}\n{detail}")
+        return log_path
+
     def check_device(self, expected_api, minimum):
         if not any(self.shell("getprop", name).strip() == "1"
                    for name in ("ro.boot.qemu", "ro.kernel.qemu")):
@@ -233,6 +254,10 @@ def write_report(output, report):
     lines += ["", *report["errors"]]
     summary = "\n".join(lines) + "\n"
     (output / "report.md").write_text(summary, encoding="utf-8")
+    encoded = summary.encode("utf-8")
+    if len(encoded) > 60000:
+        summary = encoded[:60000].decode("utf-8", errors="ignore")
+        summary += "\n\nSummary shortened. Full details are in report.md, report.json and the saved launch logs.\n"
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
             stream.write(summary)
@@ -299,10 +324,10 @@ def run_checks(args):
             foreground = resumed_package(activities, package)
             entry["result"] = "started; app resumed" if foreground else "did not reach app"
             try:
-                log = emulator.adb("logcat", "-b", "all", "-d", "-v", "threadtime", timeout=45)
+                log = emulator.collect_logs(output).read_text(encoding="utf-8", errors="replace")
             except (SmokeError, OSError, subprocess.TimeoutExpired) as error:
+                entry["result"] += "; logs incomplete"
                 raise SmokeError(f"Could not collect logs after launching {activity['name']}: {error}") from error
-            (output / "logcat.txt").write_text(log, encoding="utf-8")
             crashes = faults(log, package)
             if crashes:
                 entry["result"] = "crash or ANR"
@@ -315,12 +340,15 @@ def run_checks(args):
     except (SmokeError, OSError, ValueError, ET.ParseError, subprocess.TimeoutExpired) as error:
         report["errors"].append(str(error))
         if emulator and diagnostics_allowed:
-            for filename, cmd in [("logcat.txt", ["logcat", "-b", "all", "-d", "-v", "threadtime"]),
-                                  ("activities.txt", ["shell", "dumpsys activity activities"])]:
-                try:
-                    (output / filename).write_text(emulator.adb(*cmd, timeout=45), encoding="utf-8")
-                except (SmokeError, OSError, subprocess.TimeoutExpired) as diagnostic_error:
-                    report["errors"].append(f"Could not save {filename}: {diagnostic_error}")
+            try:
+                emulator.collect_logs(output, "diagnostic-logcat")
+            except (SmokeError, OSError, subprocess.TimeoutExpired) as diagnostic_error:
+                report["errors"].append(f"Could not save diagnostic logs: {diagnostic_error}")
+            try:
+                (output / "activities.txt").write_text(
+                    emulator.adb("shell", "dumpsys activity activities", timeout=45), encoding="utf-8")
+            except (SmokeError, OSError, subprocess.TimeoutExpired) as diagnostic_error:
+                report["errors"].append(f"Could not save activities.txt: {diagnostic_error}")
             try:
                 with (output / "failure.png").open("wb") as screenshot:
                     subprocess.run(["adb", "-s", args.serial, "exec-out", "screencap", "-p"],
